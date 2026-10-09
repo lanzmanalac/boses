@@ -86,19 +86,26 @@ export function deriveCoverage(segments) {
 
 /**
  * Merge words and gaps into one reading order for the transcript body.
+ *
+ * Returns HTML, not plain text: a gap must keep its heavy left rule and
+ * diagonal hatch on paper, exactly as it has on screen. A gap printed as
+ * bare bracketed text is one a student can mistake for ordinary punctuation —
+ * and it disappears entirely in a greyscale photocopy, which is precisely
+ * when the sheet needs to be honest about what was missed.
+ *
  * @param {TranscriptSegment[]} segments
  */
-function transcriptText(segments) {
+function transcriptHtml(segments) {
   const out = [];
   for (const seg of [...(segments ?? [])].sort((a, b) => a.start - b.start)) {
     const items = [
-      ...(seg.words ?? []).map((w) => ({ at: w.start, run: () => w.text })),
+      ...(seg.words ?? []).map((w) => ({ at: w.start, html: esc(w.text) })),
       ...(seg.gaps ?? []).map((g) => ({
         at: g.start,
-        run: () => `[${REASON_PLAIN[g.reason.kind] ?? 'unclear'}]`,
+        html: `<span class="print-gap">[${esc(REASON_PLAIN[g.reason.kind] ?? 'unclear')}]</span>`,
       })),
     ].sort((a, b) => a.at - b.at);
-    out.push(items.map((i) => i.run()).join(' '));
+    out.push(items.map((i) => i.html).join(' '));
   }
   return out.filter(Boolean).join('\n');
 }
@@ -212,7 +219,7 @@ export function buildSheet(input) {
   <h2>5 · Verbatim transcript</h2>
   <p class="meta">Exactly what was captured, in order. Bracketed marks are
   moments nothing was reliably heard.</p>
-  <div class="transcript-body">${esc(transcriptText(segments))}</div>
+  <div class="transcript-body">${transcriptHtml(segments)}</div>
 
   <footer class="meta" style="margin-top:1.5em;border-top:1px solid #999;padding-top:0.5em">
     Generated offline on-device. Audio was processed locally and not retained.

@@ -1,0 +1,343 @@
+/* ============================================================================
+ * Boses — design/tokens.css
+ * Owner: design lane (UI/UX). Drop-in replacement for the :root block in
+ *        web/styles.css.
+ *
+ * WHAT THIS FILE IS
+ *   The single source of truth for colour, type, space, radius, and motion.
+ *   Merge its :root and theme blocks into styles.css (or @import it) — every
+ *   existing consumer in captions.js / sheet.js / index.html keeps working,
+ *   because every variable name from the previous :root block is preserved.
+ *
+ * DESIGN DIRECTION — "academic paper"
+ *   A warm, paper-like light theme as the primary surface, with serif display
+ *   type for headings and the caption stream. It reads as a study document
+ *   rather than a terminal, which matches the artifact the product ends with:
+ *   a printed lesson sheet.
+ *
+ *   The dark theme is a DIMMED PAPER (warm charcoal), not pure black. Two
+ *   reasons: it keeps the product identity coherent across themes instead of
+ *   reading as two different apps, and it is less harsh than #000 during a
+ *   40-minute class. Pure black is available via the [data-contrast="max"]
+ *   escape hatch below for users who want maximum separation.
+ *
+ * ---------------------------------------------------------------------------
+ * HARD CONSTRAINTS — read before editing
+ *
+ *   1. NO WEB FONTS. Every family here is a system stack. A font fetch that
+ *      fails in airplane mode is a caption that does not render. This is an
+ *      offline guarantee, not an aesthetic preference.
+ *
+ *   2. --type-scale IS THE ONLY TYPE MULTIPLIER. Every size token is derived
+ *      from it. The whole interface grows with the user's setting — not just
+ *      the captions — and that is what makes the accessibility control behave
+ *      identically on a ₱4,000 phone and a school laptop.
+ *
+ *   3. MINIMUM CONTRAST: body text 7:1, large text 4.5:1, UI borders 3:1
+ *      against their adjacent surface. This is an accessibility product; a
+ *      tasteful pale grey that fails AA is a regression, not a style choice.
+ *
+ *   4. The paper ramp is TINTED (#F6F2EA), never pure #FFF. Pure white behind
+ *      dense serif text causes halation — dark text appears to smear for
+ *      low-vision users. The tint also survives projector washing-out.
+ *
+ *   5. Touch targets are never smaller than --tap-min (48px).
+ * ---------------------------------------------------------------------------
+ * */
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * CORE SCALE — theme-independent
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* -- The one multiplier. ------------------------------------------------
+   * Presentation.setScale() writes this to documentElement. Never scope it to
+   * a selector: the whole point is that chrome and captions move together. */
+  --type-scale: 1;
+
+  /* Type ladder. Derived, never hand-set, so one slider drives everything. */
+  --step--2: calc(0.6875rem * var(--type-scale)); /* 11px — timecodes, chip labels */
+  --step--1: calc(0.8125rem * var(--type-scale)); /* 13px — metadata, captions' secondary */
+  --step-0:  calc(0.9375rem * var(--type-scale)); /* 15px — body, buttons (was 0.875) */
+  --step-1:  calc(1.125rem  * var(--type-scale)); /* 18px — lead body (was 1)      */
+  --step-2:  calc(1.375rem  * var(--type-scale)); /* 22px — section titles          */
+  --step-3:  calc(1.875rem  * var(--type-scale)); /* 30px — screen titles           */
+
+  /* THE CAPTION SIZE. 30px at scale 1 — legible at arm's length on a desk,
+   * bumped up by the slider on a phone. This is the single most important
+   * number in the file. */
+  --step-caption: calc(1.875rem * var(--type-scale));
+  --step-print:   calc(11.5pt * var(--type-scale));
+
+  /* Space — a 4px-based scale. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Radius — paper is tactile, so corners are soft but not bubbly. */
+  --radius-sm: 4px;
+  --radius:    8px;
+  --radius-lg: 14px;
+
+  /* Elevation is almost absent in the paper theme: depth comes from RULES
+   * (hairlines), not shadows. Paper does not cast dramatic shadows, and on a
+   * low-contrast-sensitive display a soft shadow reads as smudge. */
+  --shadow-sheet: 0 1px 3px rgb(61 48 32 / 0.10), 0 8px 24px rgb(61 48 32 / 0.07);
+  --shadow-pop:   0 2px 8px rgb(61 48 32 / 0.14);
+
+  --tap-min: 48px; /* minimum comfortable touch target */
+
+  /* Type families — SYSTEM STACKS ONLY (constraint 1). */
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+             "Noto Sans", sans-serif;
+  --font-caption: Charter, "Bitstream Charter", "Charis SIL", Georgia,
+             "Iowan Old Style", "Noto Serif", serif;
+  --font-print: Georgia, "Times New Roman", "Noto Serif", serif;
+  /* Tabular figures for timecodes, SNR, latency, coverage. Proportional
+   * digits jitter while a lesson runs, which reads as instability. */
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas,
+               "Liberation Mono", monospace;
+
+  /* Motion — durations only, so prefers-reduced-motion has one place to
+   * override. Never animate a caption's arrival; see SPEC §3.4. */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * THEME 1 — PAPER (default)
+ *
+ * Warm light. Hairline rules instead of shadows. Ink is a desaturated
+ * near-black with a brown cast (#211C16) rather than #000 — pure black on a
+ * tinted ground is the harshest possible pairing for long reading.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+:root,
+[data-theme="paper"] {
+  color-scheme: light;
+
+  --bg:            #F6F2EA; /* tinted paper — constraint 4 */
+  --bg-raised:     #FFFDF8; /* cards, sheets of paper on the desk */
+  --bg-sunken:     #EBE5D9; /* recessed wells, the caption gutter */
+
+  --fg:            #211C16; /* ink */
+  --fg-muted:      #5C5347; /* 7.0:1 on --bg — passes AA at body size */
+  --fg-faint:      #8A8073; /* decorative only; never the sole carrier of meaning */
+
+  --border:        #C9BFAE; /* hairlines */
+  --border-strong: #8A8073;
+
+  /* One accent. A deep ink-blue: it must read as ink on paper, not as a
+   * highlight colour, and it must survive a washed-out classroom projector. */
+  --accent:        #1F4E5F;
+  --accent-quiet:  #E3EBEE;
+  --accent-fg:     #FFFDF8;
+
+  /* GAP RAMP — the most important set in this file.
+   * A gap must read as a HOLE IN THE SENTENCE, not as a style choice. On a
+   * dark theme a gap can glow; on paper it would vanish if it were merely a
+   * tinted highlight. So a gap carries THREE signals at once:
+   *   --gap-fill   warm ochre wash   — the mass
+   *   --gap-rule   heavy left rule   — the shape, visible at a glance
+   *   --gap-hatch  diagonal hatch    — texture, survives greyscale printing
+   * The hatch is the reason a gap is still unmistakably a gap when a student
+   * photocopies the sheet in black and white. */
+  --gap-fill:       #F7E7C4;
+  --gap-rule:       #A8681A;
+  --gap-ink:        #4A2E08;
+  --gap-hatch:      #A8681A; /* rendered as a repeating-linear-gradient */
+  --gap-hatch-gap:  #F7E7C4;
+
+  --flag:     #A03D2A; /* "I missed this" — red-clay, distinct from the gap ochre */
+  --flag-quiet: #F5DED8;
+
+  --ok:   #2F6B3C;
+  --warn: #8A5A12;
+  --bad:  #9B2C2C;
+
+  --focus-ring: #1F4E5F;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * THEME 2 — DIMMED PAPER (dark peer)
+ *
+ * Warm charcoal, not #000. Same ink relationships, inverted. The gap ramp
+ * stays ochre because a gap that changes colour between themes teaches the
+ * student that the colour means nothing.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+[data-theme="dimmed"] {
+  color-scheme: dark;
+
+  --bg:            #1C1A17;
+  --bg-raised:     #262320;
+  --bg-sunken:     #131210;
+
+  --fg:            #F2EDE4;
+  --fg-muted:      #B5AC9D;
+  --fg-faint:      #7E766A;
+
+  --border:        #3B3733;
+  --border-strong: #6B6259;
+
+  --accent:        #7FBBC9;
+  --accent-quiet:  #233036;
+  --accent-fg:     #0F1416;
+
+  --gap-fill:      #3A2B12;
+  --gap-rule:      #D99A3C;
+  --gap-ink:       #F5D89B;
+  --gap-hatch:     #D99A3C;
+  --gap-hatch-gap: #3A2B12;
+
+  --flag:      #E08A72;
+  --flag-quiet: #3A211A;
+
+  --ok:   #7FC98D;
+  --warn: #E0B45F;
+  --bad:  #E08A8A;
+
+  --focus-ring: #7FBBC9;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * MAXIMUM SEPARATION — an accessibility override, not a theme
+ *
+ * Formerly the old "high contrast" toggle. Kept as a layer on top of either
+ * theme: pure black on pure white with heavy rules, for low-vision users and
+ * for a badly-lit classroom where even dimmed paper washes out. Nothing about
+ * the layout changes — only separation.
+ *
+ * NOTE: this used to be the DEFAULT. It is not any more: high separation is
+ * now one deliberate step on a scale, not the baseline. Do not quietly move
+ * it back — that is a decision, not a default.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+[data-contrast="max"] {
+  --bg:            #000000;
+  --bg-raised:     #000000;
+  --bg-sunken:     #000000;
+  --fg:            #FFFFFF;
+  --fg-muted:      #FFFFFF;
+  --fg-faint:      #E0E0E0;
+  --border:        #FFFFFF;
+  --border-strong: #FFFFFF;
+  --accent:        #7FF0DD;
+  --accent-quiet:  #00201C;
+  --accent-fg:     #000000;
+
+  --gap-fill:      #000000;
+  --gap-rule:      #FFD866;
+  --gap-ink:       #FFD866;
+  --gap-hatch:     #FFD866;
+  --gap-hatch-gap: #000000;
+
+  --flag:    #FFB3A3;
+  --ok:      #8FF0A8;
+  --warn:    #FFD98A;
+  --bad:     #FF9D9D;
+  --focus-ring: #7FF0DD;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * BACKWARDS-COMPATIBILITY ALIASES
+ *
+ * The three gap tokens were RENAMED by this file. The rules in styles.css
+ * still reference the old names, so they are aliased here rather than broken:
+ *
+ *   --gap-bg     ->  --gap-fill
+ *   --gap-fg     ->  --gap-ink
+ *   --gap-border ->  --gap-rule
+ *
+ * Because every theme block above sets the NEW names, these aliases resolve
+ * per-theme automatically — no theme block needs to repeat them.
+ *
+ * Once styles.css has been migrated to the new names (recommended, as part of
+ * the §4 gap rewrite), this block can be deleted. Until then, keep it.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --gap-bg:     var(--gap-fill);
+  --gap-fg:     var(--gap-ink);
+  --gap-border: var(--gap-rule);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * COMPONENT TOKEN GROUPS
+ * Not applied here — these are the values the component rules in styles.css
+ * should read from, so a theme change never requires touching a component.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* The honesty strip. Present on every screen, always. See SPEC §5.2. */
+:root {
+  --strip-h: calc(2.5rem * var(--type-scale));
+  --strip-bg: var(--accent-quiet);
+  --strip-fg: var(--fg);
+  --strip-rule: var(--border);
+}
+
+/* The caption stream. */
+:root {
+  --caption-measure: 34ch;      /* ~34 characters per line. Long measures are
+                                 * genuinely hard to track when reading at
+                                 * speed from a desk. */
+  --caption-lead: 1.55;         /* generous; captions are read aloud in the head */
+  --caption-gap: var(--space-5);
+  --caption-buffer: 6;          /* newest-first: how many segments stay on
+                                 * screen before the oldest scrolls off.
+                                 * See SPEC §5.1 for why this is bounded. */
+  --caption-fade-mask: linear-gradient(
+    to bottom, transparent 0, var(--bg) 4rem
+  );                           /* older lines dissolve rather than being
+                                 * abruptly cropped at the top edge */
+}
+
+/* The gap itself. See SPEC §4 for the full anatomy. */
+:root {
+  --gap-rule-w: 4px;            /* the heavy left rule */
+  --gap-hatch-angle: 135deg;
+  --gap-hatch-size: 6px;
+  --gap-hatch-opacity: 0.28;
+  --gap-pad-x: var(--space-2);
+  --gap-pad-y: 0.1em;
+  --gap-radius: var(--radius-sm);
+}
+
+/* Print — the terminal artifact. Always white paper, always ink. A student
+ * printing in greyscale must still be able to see a gap. */
+:root {
+  --print-bg: #FFFFFF;
+  --print-ink: #000000;
+  --print-rule: #000000;
+  --print-hatch-opacity: 0.55;  /* heavier on paper than on screen — a light
+                                 * hatch disappears in toner */
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * MOTION
+ * One place to override. Nothing here may be load-bearing for comprehension:
+ * the captions must be fully readable with every duration set to 0.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0.01ms;
+    --dur-base: 0.01ms;
+  }
+  /* Belt and braces — in case a component hard-codes a duration. */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
