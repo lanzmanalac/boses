@@ -9,6 +9,8 @@ const harness = {
   decodeText: 'mitokondria sa selula',
   decodeCount: 0,
   loadCount: 0,
+  /** @type {{ text: string, timestamp: [number, number | null] }[] | null} */
+  chunks: null,
   /** @type {FakeWorker[]} */
   instances: [],
 };
@@ -47,12 +49,13 @@ class FakeWorker {
       queueMicrotask(() => {
         if (this.terminated) return;
         const text = harness.decodeText;
+        const chunks = harness.chunks ?? [{ text, timestamp: [0, msg.pcm.length / 16000] }];
         this.onmessage?.({
           data: {
             type: 'decoded',
             id: msg.id,
             text,
-            chunks: [{ text, timestamp: [0, 0.4] }],
+            chunks,
           },
         });
       });
@@ -69,6 +72,7 @@ function resetHarness() {
   harness.decodeText = 'mitokondria sa selula';
   harness.decodeCount = 0;
   harness.loadCount = 0;
+  harness.chunks = null;
   harness.instances = [];
   globalThis.Worker = FakeWorker;
 }
@@ -91,18 +95,64 @@ test('readGold of a missing path is null', async () => {
   assert.equal(await readGold('lessons/gold/no-such-transcript.txt'), null);
 });
 
-test('decoded text is a low_confidence gap, never words', async () => {
+test('a clear decode yields unverified words inside the segment', async () => {
   const engine = new WhisperEngine();
   assert.equal(engine.supportsWordConfidence, false);
+  const pcm = new Float32Array(1600);
+  const seg = await engine.transcribe(pcm, { startSec: 1.5, snrDb: 12 });
+  assert.equal(engine.supportsWordConfidence, false);
+  assert.ok(seg.words.length >= 1);
+  assert.equal(seg.gaps.length, 0);
+  for (const word of seg.words) {
+    assert.equal(word.conf, null);
+    assert.ok(word.start >= seg.start);
+    assert.ok(word.end <= seg.end);
+    assert.ok(word.end > word.start);
+  }
+  assert.equal(seg.raw.text, 'mitokondria sa selula');
+  assert.equal(seg.start, 1.5);
+  assert.equal(seg.end, 1.5 + 1600 / 16000);
+  assert.equal(seg.snrDb, 12);
+  await engine.dispose();
+});
+
+test('a chunk with a null end is a gap with no words or alternatives', async () => {
+  harness.chunks = [{ text: 'mitokondria', timestamp: [0, null] }];
+  const engine = new WhisperEngine();
   const pcm = new Float32Array(1600);
   const seg = await engine.transcribe(pcm, { startSec: 1.5, snrDb: 12 });
   assert.equal(seg.words.length, 0);
   assert.equal(seg.gaps.length, 1);
   assert.equal(seg.gaps[0].reason.kind, 'low_confidence');
-  assert.deepEqual(seg.gaps[0].reason.alternatives, ['mitokondria sa selula']);
-  assert.equal(seg.start, 1.5);
-  assert.equal(seg.end, 1.5 + 1600 / 16000);
-  assert.equal(seg.snrDb, 12);
+  assert.equal(seg.gaps[0].reason.alternatives, undefined);
+  await engine.dispose();
+});
+
+test('a chunk ending more than 0.25 s past the clip is a gap', async () => {
+  harness.chunks = [{ text: 'mitokondria', timestamp: [0, 0.36] }];
+  const engine = new WhisperEngine();
+  const pcm = new Float32Array(1600);
+  const seg = await engine.transcribe(pcm, { startSec: 1.5, snrDb: 12 });
+  assert.equal(seg.end, 1.6);
+  assert.equal(seg.words.length, 0);
+  assert.equal(seg.gaps.length, 1);
+  assert.equal(seg.gaps[0].reason.kind, 'low_confidence');
+  assert.equal(seg.gaps[0].reason.alternatives, undefined);
+  await engine.dispose();
+});
+
+test('a chunk ending less than 0.25 s past the clip is clamped and kept', async () => {
+  harness.chunks = [{ text: 'mitokondria', timestamp: [0, 0.3] }];
+  const engine = new WhisperEngine();
+  const pcm = new Float32Array(1600);
+  const seg = await engine.transcribe(pcm, { startSec: 1.5, snrDb: 12 });
+  assert.equal(seg.end, 1.6);
+  assert.equal(seg.words.length, 1);
+  assert.equal(seg.words[0].text, 'mitokondria');
+  assert.equal(seg.words[0].conf, null);
+  assert.equal(seg.words[0].start, 1.5);
+  assert.equal(seg.words[0].end, 1.6);
+  assert.equal(seg.gaps.length, 0);
   await engine.dispose();
 });
 
@@ -127,8 +177,9 @@ test('duplicate transcribe posts one decode', async () => {
   assert.equal(p1, p2);
   const seg = await p1;
   assert.equal(harness.decodeCount, 1);
-  assert.equal(seg.words.length, 0);
-  assert.deepEqual(seg.gaps[0].reason.alternatives, ['mitokondria sa selula']);
+  assert.ok(seg.words.length >= 1);
+  assert.equal(seg.gaps.length, 0);
+  assert.equal(seg.words[0].conf, null);
   await engine.dispose();
 });
 
@@ -152,6 +203,7 @@ test('empty PCM is too_short', async () => {
   const seg = await engine.transcribe(new Float32Array(0), { startSec: 2, snrDb: 20 });
   assert.equal(seg.words.length, 0);
   assert.equal(seg.gaps[0].reason.kind, 'too_short');
+  assert.equal(seg.gaps[0].reason.alternatives, undefined);
   assert.equal(harness.decodeCount, 0);
   await engine.dispose();
 });
