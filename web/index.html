@@ -74,8 +74,9 @@
 // ── boot ────────────────────────────────────────────────────────────────────
 // P3's scope is the shell, the renderer, and the sheet. Other owners' modules
 // are resolved lazily and each one is allowed to be missing without taking the
-// UI down with it: at T+0.5 the whole product is demoable against fixtures
-// while asr.js / capture.js / confidence.js do not exist yet.
+// UI down with it — so the app degrades to a visible message instead of a
+// blank screen. capture.js / noise.js (P2) and engine-select.js / store.js (P4)
+// are all loaded this way.
 
 import { CaptionRenderer, Presentation, SignalQualityHUD, TYPE_MIN, TYPE_MAX }
   from './captions.js';
@@ -104,6 +105,10 @@ const session = {
 let engine = null;
 let capturing = false;
 let started = false;
+/** @type {typeof import('./capture.js') | null} */
+let captureModule = null;
+let mic = null;      // live MicCapture instance
+let bridge = null;   // { onSegment } from connectCapture
 
 // ── flags ───────────────────────────────────────────────────────────────────
 // Route through P4's store when it exists; fall back to in-memory so the
@@ -121,17 +126,26 @@ function persistFlags(flags) {
 
 // ── engine ──────────────────────────────────────────────────────────────────
 // engine-select.js is P4's. If it is absent, fixture mode is unavailable and
-// we say so plainly instead of showing an empty screen.
+// we say so plainly instead of showing a blank screen.
+//
+// TWO DISTINCT MODES — do not confuse them at the demo:
+//   ?fixture=1  replays committed JSON. Instant, offline, no microphone.
+//   no flag     opens the real microphone and loads the model. Slower, needs
+//               permission, needs a one-time model download.
+// Only the second is live captioning. Say which one is on screen.
 const params = new URLSearchParams(location.search);
 const wantsFixture = params.has('fixture');
+
+let engineIsLive = false;   // true only when a real mic feeds a real model
+let stopWhenEnded = null;   // releases the live stream when End class is pressed
 
 if (wantsFixture) {
   try {
     engine = (await import('./engine-select.js')).default;
     await engine.init?.();
     const id = engine?.id ?? 'fixture';
-    $('start-btn').textContent = 'Start lesson (fixture)';
-    status(`Fixture mode — deterministic replay via ${id}. No model load.`);
+    $('start-btn').textContent = 'Play recorded lesson';
+    status(`Fixture mode — playing recorded segments via ${id}. Not live. No microphone.`);
     hud.render({ online: navigator.onLine, capturing: false, engine: id });
   } catch (err) {
     console.warn('engine-select unavailable', err);
@@ -140,8 +154,23 @@ if (wantsFixture) {
                  note: 'Fixture engine not available yet (engine-select.js)' });
   }
 } else {
-  hud.render({ online: navigator.onLine, capturing: false, engine: 'starting…' });
-  status('Model engine not selected. Add ?fixture=1 to the URL for the offline demo path.');
+  // Live path. Import capture/noise up front so a missing module is a clear
+  // message, not a dead Start button.
+  try {
+    const cap = await import('./capture.js');
+    captureModule = cap;
+    engine = (await import('./engine-select.js')).default;
+    const id = engine?.id ?? 'whisper';
+    $('start-btn').textContent = 'Start lesson (live mic)';
+    status('Live mode — first run downloads the model (~40 MB). Pre-download before a demo.');
+    hud.render({ online: navigator.onLine, capturing: false, engine: id });
+  } catch (err) {
+    console.warn('live path unavailable', err);
+    $('start-btn').disabled = true;
+    status('Live capture unavailable. Add ?fixture=1 to play recorded segments instead.');
+    hud.render({ online: navigator.onLine, capturing: false,
+                 note: `Live path unavailable: ${err.message}` });
+  }
 }
 
 // ── controls ────────────────────────────────────────────────────────────────
@@ -190,38 +219,96 @@ $('flag-btn').addEventListener('click', () => {
 $('start-btn').addEventListener('click', async () => {
   started = true;
   $('end-btn').disabled = false;
+  $('start-btn').disabled = true;
   capturing = true;
   hud.render({ online: navigator.onLine, capturing: true, engine: engine?.id ?? 'fixture' });
-  status('Listening. Keep this screen on.');
 
-  if (engine) {
-    try {
-      for await (const seg of streamSegments(engine)) {
-        session.segments.push(seg);
-        captions.appendSegment(seg);
-        // Checkpoint on arrival, not at the end — a phone that dies at minute
-        // 18 of 20 must not lose the lesson. P4's store owns the write.
-        try { await store?.appendSegment?.(session.id, seg); } catch {}
-        hud.render({
-          online: navigator.onLine, capturing: true, engine: engine.id,
-          snrDb: seg.snrDb, latencyMs: seg.latencyMs,
-        });
-      }
-    } catch (err) {
-      console.warn('capture stream ended', err);
-      capturing = false;
-      status('Capture stopped. Segments captured so far are kept.');
+  // Open the persisted session BEFORE the first segment, so checkpointing
+  // works from the very first utterance.
+  try { store?.beginSession?.({ id: session.id, startedAt: session.startedAt, title: session.title }); }
+  catch (err) { console.warn('session not opened in store', err); }
+
+  // One path for both modes: consume { onSegment } and render. The only
+  // difference is where segments come from.
+  const consume = (bridgeLike) => new Promise((resolve) => {
+    bridgeLike.onSegment((seg) => {
+      session.segments.push(seg);
+      captions.appendSegment(seg);
+      // Checkpoint on arrival, not at the end — a phone that dies at minute
+      // 18 of 20 must not lose the lesson. P4's store owns the write.
+      Promise.resolve(store?.appendSegment?.(session.id, seg)).catch(() => {});
+      hud.render({
+        online: navigator.onLine, capturing, engine: engine?.id ?? 'fixture',
+        snrDb: seg.snrDb, latencyMs: seg.latencyMs,
+      });
+    });
+    resolve();
+  });
+
+  try {
+    if (wantsFixture) {
+      status('Playing recorded segments. This is not live capture.');
       hud.render({ online: navigator.onLine, capturing: false, engine: engine?.id ?? 'fixture' });
+      await consume(await streamSegments(engine));   // resolves when the fixture is exhausted
+      status('Recorded lesson finished. End class to produce the sheet.');
+    } else {
+      // Live: microphone -> noise gate -> decoder -> captions.
+      status('Requesting microphone…');
+      mic = new captureModule.MicCapture();
+      await mic.start();                 // rejects if permission is denied
+      engineIsLive = true;
+
+      // P2's bridge gates on SNR before the decoder ever runs. That is the
+      // behaviour that keeps the gap promise honest in a loud room.
+      bridge = captureModule.connectCapture(mic, engine, {});
+      status('Listening. Keep this screen on. Speak normally.');
+      hud.render({ online: navigator.onLine, capturing: true, engine: engine.id,
+                   ...mic.signalQuality() });
+
+      // While capture runs, keep the HUD honest about the room.
+      const qualityTimer = setInterval(() => {
+        if (!capturing || !mic) return;
+        hud.render({ online: navigator.onLine, capturing: true, engine: engine?.id,
+                     ...mic.signalQuality() });
+      }, 1000);
+
+      await consume(bridge);             // resolves immediately; segments arrive async
+      // Keep streaming until End class is pressed.
+      await new Promise((resolve) => { stopWhenEnded = resolve; });
+      clearInterval(qualityTimer);
     }
-  } else {
-    status('No engine available — press End class to produce an empty sheet, or add ?fixture=1.');
+  } catch (err) {
+    console.warn('capture stream ended', err);
+    capturing = false;
+    engineIsLive = false;
+    const denied = /permission|denied|NotAllowed/i.test(err?.message ?? '');
+    status(denied
+      ? 'Microphone permission denied. Allow it in the browser, or add ?fixture=1 to play recorded segments.'
+      : `Capture stopped: ${err?.message ?? err}. Segments captured so far are kept. Add ?fixture=1 for the recorded path.`);
+    hud.render({ online: navigator.onLine, capturing: false, engine: engine?.id ?? 'fixture',
+                 note: denied ? 'Microphone permission denied' : 'Capture stopped' });
+  } finally {
+    $('start-btn').disabled = false;
+    await mic?.stop().catch(() => {});
+    mic = null;
   }
 });
 
 $('end-btn').addEventListener('click', () => {
   capturing = false;
+  engineIsLive = false;
+  stopWhenEnded?.();                    // release the live stream's await
+  stopWhenEnded = null;
+  mic?.stop().catch(() => {});          // release the microphone now, not at end of class
+  mic = null;
   session.segments = captions.getSegments();
   session.flags = captions.getFlags();
+
+  // Persist the finished session. P4 owns the schema; a failure here must not
+  // lose the sheet the student is looking at.
+  try {
+    store?.finalizeSession?.({ ...session, coverage: deriveCoverage(session.segments) });
+  } catch (err) { console.warn('session not persisted', err); }
 
   // Vocab + summary belong to P4. Render whatever exists; never invent.
   session.vocab = [];
@@ -233,6 +320,8 @@ $('end-btn').addEventListener('click', () => {
     coverage,
     summaryLines: session.summaryLines,
     llmDraft: session.llmDraft,
+    // ADR-0002: if the decoder exposes no per-word confidence, the sheet must
+    // say so rather than implying the model knew what it did not know.
     confidenceSource: engine?.supportsWordConfidence === false
       ? 'segment-level reliability (decoder confidence unavailable)'
       : 'per-token decoder confidence',
@@ -284,8 +373,13 @@ async function* streamSegments(eng) {
 
 // ── connectivity ────────────────────────────────────────────────────────────
 // Airplane mode is the expected state, so the HUD reports it as a success.
+// Airplane mode is the expected state, so the HUD reports it as a success.
+// The mode word is deliberate: "live mic" and "recorded" must never look alike
+// on screen, or the demo claims something it is not doing.
 const onNet = () => hud.render({
   online: navigator.onLine, capturing, engine: engine?.id ?? 'fixture',
+  note: engineIsLive ? 'live microphone'
+     : wantsFixture ? 'recorded segments — not live' : undefined,
 });
 addEventListener('online', onNet);
 addEventListener('offline', onNet);
