@@ -65,17 +65,30 @@ export class MicCapture {
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
     });
-    try {
-      this.ctx = new AudioContext({ sampleRate: SAMPLE_RATE }); // browser resamples with proper filtering
-    } catch {
-      this.ctx = new AudioContext(); // Safari/older: resample ourselves below
+    // Prefer a 16 kHz context (the browser resamples with proper filtering).
+    // Firefox throws when the mic's rate differs from the context's, and some
+    // browsers reject the option: fall back to the device rate + Downsampler.
+    let source;
+    for (const opts of [{ sampleRate: SAMPLE_RATE }, undefined]) {
+      let ctx = null;
+      try {
+        ctx = new AudioContext(opts);
+        source = ctx.createMediaStreamSource(this.stream);
+        this.ctx = ctx;
+        break;
+      } catch (err) {
+        await ctx?.close?.().catch(() => {});
+        if (!opts) { this._release(); throw err; }
+      }
     }
     if (this.ctx.sampleRate !== SAMPLE_RATE) this.resampler = new Downsampler(this.ctx.sampleRate, SAMPLE_RATE);
+    // iOS Safari often starts suspended (the permission prompt breaks the user
+    // gesture); a suspended context delivers no audio at all.
+    if (this.ctx.state === 'suspended') await this.ctx.resume?.();
 
     const url = URL.createObjectURL(new Blob([TAP_WORKLET], { type: 'text/javascript' }));
     try { await this.ctx.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
 
-    const source = this.ctx.createMediaStreamSource(this.stream);
     this.node = new AudioWorkletNode(this.ctx, 'boses-tap');
     this.node.port.onmessage = (e) => {
       const chunk = this.resampler ? this.resampler.process(e.data) : e.data;
@@ -88,6 +101,12 @@ export class MicCapture {
 
   /** @param {(seg: RawSegment) => void} cb */
   onSegment(cb) { this.segmenter.onSegment(cb); }
+
+  /** Drop the mic if start() fails part-way, so the browser's recording light goes off. */
+  _release() {
+    this.stream?.getTracks().forEach((t) => t.stop());
+    this.stream = null;
+  }
 
   async stop() {
     if (!this.capturing) return;
@@ -182,11 +201,22 @@ export function connectCapture(capture, engine, opts = {}) {
 
   capture.onSegment((raw) => {
     chain = chain.then(async () => {
-      const seg = raw.reason
-        ? gapSegment(raw, engine.id, `cap-${++n}`)
-        : await engine.transcribe(raw.pcm, { startSec: raw.startSec, hotwords, snrDb: raw.snrDb, snrThresholdDb });
-      for (const cb of listeners) cb(seg);
-    }).catch((err) => console.warn('capture -> engine failed', err));
+      let seg;
+      if (raw.reason) {
+        seg = gapSegment(raw, engine.id, `cap-${++n}`);
+      } else {
+        try {
+          seg = await engine.transcribe(raw.pcm, { startSec: raw.startSec, hotwords, snrDb: raw.snrDb, snrThresholdDb });
+        } catch (err) {
+          // A failed decode must still be visible: show a gap, never drop the audio silently.
+          console.warn('capture -> engine failed', err);
+          seg = gapSegment({ ...raw, reason: 'low_confidence' }, engine.id, `cap-${++n}`);
+        }
+      }
+      for (const cb of listeners) {
+        try { cb(seg); } catch (err) { console.warn('segment listener failed', err); }
+      }
+    });
   });
 
   return { id: engine.id, onSegment: (cb) => { listeners.push(cb); } };

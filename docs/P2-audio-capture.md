@@ -68,14 +68,15 @@ All numbers from P2's real recordings. ASR numbers were run in Python (PyTorch, 
 | Sweep 10 dB | 8 / 13 | rest are gaps — ASR is ~100% wrong at this level |
 | Sweep 5 dB / 0 dB | 0 / 13 | |
 
-**End-to-end (gate segments → ASR, whole transcript)**
+**End-to-end (gate segments → ASR, whole transcript, current settings)**
 
-| Audio | whisper-base | whisper-small-fsc (Filipino) |
-| --- | --- | --- |
-| Clean take | 57% WER / 18% CER | 39% / 16%* |
-| Real noisy take | 58% / 21% | 46% / 16%* |
+| Audio | whisper-tiny | whisper-base | whisper-small-fsc (Filipino) |
+| --- | --- | --- | --- |
+| Clean take | 81% / 29% CER | **48% / 15%** | 39% / 16%* |
+| Real noisy take | 83% / 35% | **54% / 20%** | 46% / 16%* |
 
-\* Filipino model measured with the earlier 0.5 s-only pause setting.
+Handing pause audio to the next piece (no audio lost between pieces) took whisper-base on the clean take from 57% to 48%.
+\* Filipino model measured with the earlier pause setting.
 
 **Word error rate by model** (per human-labelled line)
 
@@ -92,6 +93,26 @@ All numbers from P2's real recordings. ASR numbers were run in Python (PyTorch, 
 Hallucination loops on the clean take: tiny 2, base 0 (1 with hotwords), fsc 0. On silence and on the noise-only clip, tiny and base output no words; fsc outputs short invented words — which the gate keeps from ever reaching it.
 
 **What this means:** below ~10 dB every model is effectively wrong, so gating that audio into gaps is the honest output. whisper-base beats tiny everywhere; the Filipino fine-tune roughly halves the error but is ~6× larger.
+
+## Robustness (stress-tested)
+
+All in `node --test web/*.test.mjs` unless marked *measured*.
+
+| Case | Result |
+| --- | --- |
+| Phone / Firefox mic at 48 or 44.1 kHz (JS resampling) | *measured:* same accuracy as native 16 kHz (whisper-base 48–49% vs 48%) |
+| Firefox rejects a 16 kHz context for the mic | falls back to the device rate + resampler (was: mic failed to start) |
+| Browser rejects the 16 kHz option | starts at device rate |
+| iPhone Safari starts audio suspended | context resumed (was: silent capture) |
+| Mic cannot start at all | `start()` rejects and the mic light turns off |
+| Whisper throws on a piece | piece shown as a `low_confidence` gap, later pieces continue (was: silently dropped) |
+| P1's new output (timed words, `conf: null`, `raw`) | passes through unchanged, order kept |
+| Browser chunk size 128 / 441 / 2048 / 4096 / 7919 samples | identical segments |
+| 30-minute lesson | far faster than real time; buffers bounded |
+| Shouting (clipped audio) | 13/13 lines still captured |
+| 60 s digital silence / steady hum | nothing reaches ASR |
+| Teacher farther away, quiet room (−6 to −18 dB voice) | *measured:* 13/13 lines at every distance (SNR 21–37 dB) |
+| Noise-only recording | 0 pieces reach ASR (browser and tests) |
 
 ## Open decisions
 
