@@ -1,0 +1,41 @@
+{
+  "_comment": "Template for one live run. Copy it, fill in every field from the actual device run, then: node eval/score-run.mjs <your-run.json>. The report is NOT an accuracy claim until `segments` contains real output from a real model. Leave segments empty to see the tool's honest empty result.",
+  "schema": "boses/run-manifest@1",
+  "label": "TODO condition / TODO device",
+  "device": "TODO model, OS, browser version",
+  "runtime": "TODO WebGPU | WASM",
+  "model": "TODO e.g. Xenova/whisper-tiny",
+  "package": "TODO transformers.js version",
+  "settings": {
+    "language": "TODO tl | en | unset",
+    "hotwords": []
+  },
+  "gate": {
+    "snrThresholdDb": 16,
+    "minDurationSec": 0.3,
+    "hangoverSec": 0.5
+  },
+  "goldPath": "lessons/gold/lesson-clean.labels.txt",
+  "targets": {
+    "_comment": "The team agrees these BEFORE the run. score-run.mjs exits non-zero on any target that is not met. An unmeasured target is reported as 'not measured', never as a pass.",
+    "maxWer": null,
+    "maxCer": null,
+    "maxLatencyP95Ms": null,
+    "maxNoSpeechHallucinations": null,
+    "minCoverageRatio": null
+  },
+  "segments": [],
+  "_segmentShape": {
+    "_comment": "One live capture segment, after gateSegment. Copy from the gate log and P1's raw output. No invented values: a missing measurement stays absent.",
+    "id": "seg-1",
+    "start": null,
+    "end": null,
+    "snrDb": null,
+    "latencyMs": null,
+    "decodeMs": null,
+    "speechPresent": null,
+    "raw": { "text": "", "outcome": "" },
+    "words": [{ "text": "", "start": null, "end": null, "conf": null }],
+    "gaps": [{ "start": null, "end": null, "reason": { "kind": "" } }]
+  }
+}

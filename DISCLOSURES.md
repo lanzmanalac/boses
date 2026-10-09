@@ -8,11 +8,11 @@ verified in this checkout.
 
 | Item | Current evidence | Final value to confirm |
 | --- | --- | --- |
-| ASR model, size, quantization, and source | P1 module not merged here | P1 to enter exact model identifier, size, license, and quantization |
-| Browser inference framework and version | Architecture proposes `transformers.js` | P1 to confirm actual package and version |
-| WebGPU / WASM behavior | Design requires both paths | P1/P3 to record which path worked on phone and laptop |
-| Decoder word confidence | P1 reports text and timestamps only | State **unavailable** unless a later measured build changes this |
-| Optional local LLM | Not implemented in the P4 code | State absent if cut; otherwise record exact model and version |
+| ASR model, size, quantization, and source | `Xenova/whisper-tiny`, recorded in `eval/runs/p1-lesson-clean/meta.json` from P1's offline decode | P1 to confirm the model shipped in the browser build, its size and license, and the quantization |
+| Browser inference framework and version | `package.json` pins `@huggingface/transformers` 4.3.1; the same version appears in P1's run metadata | P1 to confirm the version actually loaded in the shipped build |
+| WebGPU / WASM behavior | P1's recorded run used `webgpu`; the engine falls back to WASM, and the load path reports which one won | Record which path worked on the demo phone and on the laptop. A phone may well run WASM only |
+| Decoder word confidence | The engine returns text and timestamps only; `supportsWordConfidence` is `false` | State **unavailable**. Accepted captions are described as unverified |
+| Optional local LLM | Not implemented anywhere in the code | State absent |
 | Cloud services | Intended static hosting only | Record chosen host and verify network requests after first load |
 
 ## What the current P4 code does
@@ -27,8 +27,12 @@ verified in this checkout.
   both forms occur in the transcript.
 - `web/summary.js` creates a deterministic, transcript-grounded overview.
   It does not call an LLM or generate new lesson facts.
-- `web/store.js` stores sessions in browser IndexedDB. The complete UI
-  recovery and one-tap delete path remains to be wired and tested by P3.
+- `web/store.js` stores sessions in browser IndexedDB.
+- `eval/score-run.mjs` scores one live run: raw WER/CER against the human
+  reference, per human-labeled TL/EN/MIX slice, plus displayed coverage, gap
+  rate, no-speech hallucinations, latency, and per-lane failure attribution.
+  It refuses a `fixture` run and will not report an unlabeled slice as a
+  number. `eval/RESULTS.md` must be generated from this tool.
 
 ## Data and privacy
 
@@ -50,8 +54,8 @@ removes the local IndexedDB records once P3 connects the UI action.
 | --- | --- |
 | Existing code and assets | Identify each external source and its license after the final asset audit. Existing diagrams, icons, and code in this repository need team provenance confirmation. |
 | AI-assisted development | Codex assisted with P4 fixture, confidence, Taglish, vocabulary, summary, storage, evaluation, and documentation code. Each teammate should add any other AI tools they used. |
-| Audio and transcripts | P2 to list recording dates, speakers, locations, and who hand-transcribed the gold references. |
-| Evaluation numbers | Enter only measurements from actual recorded audio and the final model in `eval/RESULTS.md`; fixtures are excluded. |
+| Audio and transcripts | P2 to list recording dates, speakers, locations, and who hand-transcribed the gold references. P2's `lessons/` carries the recordings and the 13-span clean gold reference used by the committed baseline |
+| Evaluation numbers | The only committed numbers are a recorded-audio baseline in `eval/RESULTS.md` (not the live path). Live phone and laptop numbers are pending. Fixtures are excluded |
 
 ## Known limits to state plainly
 
@@ -64,3 +68,7 @@ removes the local IndexedDB records once P3 connects the UI action.
   substitute for a human-authored lesson summary or an interpreter.
 - Offline operation, phone performance, and deletion must be verified on the
   final integrated build and reported as tested, not assumed.
+- The committed 65.5% WER / 23.8% CER baseline is a tiny model decoding one
+  scripted lesson offline on one laptop, over a 113-word human reference. It is
+  not the live microphone path and must not be presented as a product
+  accuracy figure.
