@@ -1,67 +1,67 @@
 {
   "fixture": "clean",
-  "timing": "synthetic",
+  "timing": "recorded",
   "confFloor": 0.6,
   "note": "TranscriptSegment[] per contracts.ts; words below confFloor are already in gaps",
   "segments": [
     {
       "id": "clean-001",
-      "start": 0.5,
-      "end": 3.96,
+      "start": 0.9,
+      "end": 4.97,
       "snrDb": 23.5,
       "words": [
         {
           "text": "Okay",
-          "start": 0.5,
-          "end": 0.77,
+          "start": 0.9,
+          "end": 1.22,
           "conf": 0.9
         },
         {
           "text": "class,",
-          "start": 0.77,
-          "end": 1.08,
+          "start": 1.22,
+          "end": 1.59,
           "conf": 0.88
         },
         {
           "text": "good",
-          "start": 1.08,
-          "end": 1.35,
+          "start": 1.59,
+          "end": 1.9,
           "conf": 0.94
         },
         {
           "text": "morning.",
-          "start": 1.35,
-          "end": 1.76,
+          "start": 1.9,
+          "end": 2.38,
           "conf": 0.87
         },
         {
           "text": "Ngayon,",
-          "start": 1.76,
-          "end": 2.12,
+          "start": 2.38,
+          "end": 2.8,
           "conf": 0.93
         },
         {
           "text": "pag-aaralan",
-          "start": 2.12,
-          "end": 2.7,
+          "start": 2.8,
+          "end": 3.49,
           "conf": 0.91
         },
         {
           "text": "natin",
-          "start": 2.7,
-          "end": 3.02,
+          "start": 3.49,
+          "end": 3.86,
           "conf": 0.87
         },
         {
           "text": "ang",
-          "start": 3.02,
-          "end": 3.24,
+          "start": 3.86,
+          "end": 4.12,
           "conf": 0.93
         },
         {
           "text": "photosynthesis.",
-          "start": 3.24,
-          "end": 3.96,
+          "start": 4.12,
+          "end": 4.97,
           "conf": 0.75
         }
       ],
@@ -71,92 +71,92 @@
     },
     {
       "id": "clean-002",
-      "start": 4.76,
-      "end": 10.14,
+      "start": 5.73,
+      "end": 10.43,
       "snrDb": 21.6,
       "words": [
         {
           "text": "Ang",
-          "start": 4.76,
-          "end": 5.02,
+          "start": 5.73,
+          "end": 5.96,
           "conf": 0.87
         },
         {
           "text": "photosynthesis",
-          "start": 5.02,
-          "end": 5.86,
+          "start": 5.96,
+          "end": 6.69,
           "conf": 0.88
         },
         {
           "text": "ay",
-          "start": 5.86,
-          "end": 6.07,
+          "start": 6.69,
+          "end": 6.87,
           "conf": 0.9
         },
         {
           "text": "ang",
-          "start": 6.07,
-          "end": 6.33,
+          "start": 6.87,
+          "end": 7.1,
           "conf": 0.88
         },
         {
           "text": "proseso",
-          "start": 6.33,
-          "end": 6.8,
+          "start": 7.1,
+          "end": 7.51,
           "conf": 0.88
         },
         {
           "text": "kung",
-          "start": 6.8,
-          "end": 7.11,
+          "start": 7.51,
+          "end": 7.78,
           "conf": 0.9
         },
         {
           "text": "saan",
-          "start": 7.11,
-          "end": 7.42,
+          "start": 7.78,
+          "end": 8.06,
           "conf": 0.97
         },
         {
           "text": "gumagawa",
-          "start": 7.42,
-          "end": 7.95,
+          "start": 8.06,
+          "end": 8.51,
           "conf": 0.88
         },
         {
           "text": "ng",
-          "start": 7.95,
-          "end": 8.16,
+          "start": 8.51,
+          "end": 8.7,
           "conf": 0.94
         },
         {
           "text": "sariling",
-          "start": 8.16,
-          "end": 8.68,
+          "start": 8.7,
+          "end": 9.15,
           "conf": 0.94
         },
         {
           "text": "pagkain",
-          "start": 8.68,
-          "end": 9.15,
+          "start": 9.15,
+          "end": 9.56,
           "conf": 0.91
         },
         {
           "text": "ang",
-          "start": 9.15,
-          "end": 9.41,
+          "start": 9.56,
+          "end": 9.79,
           "conf": 0.93
         },
         {
           "text": "mga",
-          "start": 9.41,
-          "end": 9.67,
+          "start": 9.79,
+          "end": 10.02,
           "conf": 0.87
         },
         {
           "text": "halaman.",
-          "start": 9.67,
-          "end": 10.14,
+          "start": 10.02,
+          "end": 10.43,
           "conf": 0.87
         }
       ],
@@ -166,62 +166,62 @@
     },
     {
       "id": "clean-003",
-      "start": 10.94,
-      "end": 14.4,
+      "start": 11.15,
+      "end": 15.8,
       "snrDb": 22.5,
       "words": [
         {
           "text": "Plants",
-          "start": 10.94,
-          "end": 11.35,
+          "start": 11.15,
+          "end": 11.7,
           "conf": 0.91
         },
         {
           "text": "need",
-          "start": 11.35,
-          "end": 11.65,
+          "start": 11.7,
+          "end": 12.11,
           "conf": 0.96
         },
         {
           "text": "three",
-          "start": 11.65,
-          "end": 12.01,
+          "start": 12.11,
+          "end": 12.59,
           "conf": 0.88
         },
         {
           "text": "things:",
-          "start": 12.01,
-          "end": 12.42,
+          "start": 12.59,
+          "end": 13.13,
           "conf": 0.92
         },
         {
           "text": "sunlight,",
-          "start": 12.42,
-          "end": 12.92,
+          "start": 13.13,
+          "end": 13.82,
           "conf": 0.87
         },
         {
           "text": "water,",
-          "start": 12.92,
-          "end": 13.28,
+          "start": 13.82,
+          "end": 14.3,
           "conf": 0.95
         },
         {
           "text": "and",
-          "start": 13.28,
-          "end": 13.53,
+          "start": 14.3,
+          "end": 14.64,
           "conf": 0.96
         },
         {
           "text": "carbon",
-          "start": 13.53,
-          "end": 13.94,
+          "start": 14.64,
+          "end": 15.18,
           "conf": 0.83
         },
         {
           "text": "dioxide.",
-          "start": 13.94,
-          "end": 14.4,
+          "start": 15.18,
+          "end": 15.8,
           "conf": 0.88
         }
       ],
@@ -231,68 +231,68 @@
     },
     {
       "id": "clean-004",
-      "start": 15.2,
-      "end": 19.05,
+      "start": 16.48,
+      "end": 20.15,
       "snrDb": 25.4,
       "words": [
         {
           "text": "Ang",
-          "start": 15.2,
-          "end": 15.48,
+          "start": 16.48,
+          "end": 16.75,
           "conf": 0.92
         },
         {
           "text": "chlorophyll",
-          "start": 15.48,
-          "end": 16.2,
+          "start": 16.75,
+          "end": 17.44,
           "conf": 0.87
         },
         {
           "text": "ang",
-          "start": 16.2,
-          "end": 16.48,
+          "start": 17.44,
+          "end": 17.7,
           "conf": 0.87
         },
         {
-          "text": "nagbibigay",
-          "start": 16.48,
-          "end": 17.15,
+          "text": "magbibigay",
+          "start": 17.7,
+          "end": 18.34,
           "conf": 0.87
         },
         {
           "text": "ng",
-          "start": 17.15,
-          "end": 17.38,
+          "start": 18.34,
+          "end": 18.55,
           "conf": 0.9
         },
         {
           "text": "kulay",
-          "start": 17.38,
-          "end": 17.77,
+          "start": 18.55,
+          "end": 18.93,
           "conf": 0.95
         },
         {
           "text": "berde",
-          "start": 17.77,
-          "end": 18.16,
+          "start": 18.93,
+          "end": 19.3,
           "conf": 0.87
         },
         {
           "text": "sa",
-          "start": 18.16,
-          "end": 18.38,
+          "start": 19.3,
+          "end": 19.51,
           "conf": 0.96
         },
         {
           "text": "mga",
-          "start": 18.38,
-          "end": 18.66,
+          "start": 19.51,
+          "end": 19.78,
           "conf": 0.9
         },
         {
           "text": "dahon.",
-          "start": 18.66,
-          "end": 19.05,
+          "start": 19.78,
+          "end": 20.15,
           "conf": 0.94
         }
       ],
@@ -302,56 +302,56 @@
     },
     {
       "id": "clean-005",
-      "start": 19.85,
-      "end": 22.93,
+      "start": 20.15,
+      "end": 23.33,
       "snrDb": 25.7,
       "words": [
         {
           "text": "Kinukuha",
-          "start": 19.85,
-          "end": 20.38,
+          "start": 20.15,
+          "end": 20.7,
           "conf": 0.98
         },
         {
           "text": "ng",
-          "start": 20.38,
-          "end": 20.59,
+          "start": 20.7,
+          "end": 20.92,
           "conf": 0.92
         },
         {
           "text": "chlorophyll",
-          "start": 20.59,
-          "end": 21.28,
+          "start": 20.92,
+          "end": 21.63,
           "conf": 0.77
         },
         {
           "text": "ang",
-          "start": 21.28,
-          "end": 21.55,
+          "start": 21.63,
+          "end": 21.9,
           "conf": 0.91
         },
         {
           "text": "enerhiya",
-          "start": 21.55,
-          "end": 22.08,
+          "start": 21.9,
+          "end": 22.45,
           "conf": 0.9
         },
         {
           "text": "mula",
-          "start": 22.08,
-          "end": 22.4,
+          "start": 22.45,
+          "end": 22.78,
           "conf": 0.88
         },
         {
           "text": "sa",
-          "start": 22.4,
-          "end": 22.61,
+          "start": 22.78,
+          "end": 23.0,
           "conf": 0.92
         },
         {
           "text": "araw.",
-          "start": 22.61,
-          "end": 22.93,
+          "start": 23.0,
+          "end": 23.33,
           "conf": 0.93
         }
       ],
@@ -361,246 +361,252 @@
     },
     {
       "id": "clean-006",
-      "start": 23.73,
-      "end": 26.42,
-      "snrDb": 24.9,
+      "start": 23.85,
+      "end": 26.76,
+      "snrDb": 25.4,
       "words": [
         {
-          "text": "Sa",
-          "start": 23.73,
-          "end": 23.91,
+          "text": "At",
+          "start": 23.85,
+          "end": 24.03,
           "conf": 0.86
         },
         {
+          "text": "sa",
+          "start": 24.03,
+          "end": 24.21,
+          "conf": 0.91
+        },
+        {
           "text": "loob",
-          "start": 23.91,
-          "end": 24.18,
+          "start": 24.21,
+          "end": 24.49,
           "conf": 0.91
         },
         {
           "text": "ng",
-          "start": 24.18,
-          "end": 24.36,
-          "conf": 0.91
+          "start": 24.49,
+          "end": 24.67,
+          "conf": 0.93
         },
         {
           "text": "chloroplast",
-          "start": 24.36,
-          "end": 24.94,
-          "conf": 0.83
+          "start": 24.67,
+          "end": 25.26,
+          "conf": 0.89
         },
         {
           "text": "nangyayari",
-          "start": 24.94,
-          "end": 25.48,
-          "conf": 0.98
+          "start": 25.26,
+          "end": 25.81,
+          "conf": 0.95
         },
         {
           "text": "ang",
-          "start": 25.48,
-          "end": 25.7,
-          "conf": 0.95
+          "start": 25.81,
+          "end": 26.03,
+          "conf": 0.93
         },
         {
           "text": "photosynthesis.",
-          "start": 25.7,
-          "end": 26.42,
-          "conf": 0.82
+          "start": 26.03,
+          "end": 26.76,
+          "conf": 0.84
         }
       ],
       "gaps": [],
       "engine": "fixture",
-      "latencyMs": 1392
+      "latencyMs": 755
     },
     {
       "id": "clean-007",
-      "start": 27.22,
-      "end": 29.91,
-      "snrDb": 20.0,
+      "start": 27.77,
+      "end": 30.28,
+      "snrDb": 20.8,
       "words": [
         {
           "text": "Ang",
-          "start": 27.22,
-          "end": 27.53,
-          "conf": 0.94
+          "start": 27.77,
+          "end": 28.06,
+          "conf": 0.87
         },
         {
           "text": "output",
-          "start": 27.53,
-          "end": 28.01,
-          "conf": 0.87
+          "start": 28.06,
+          "end": 28.51,
+          "conf": 0.89
         },
         {
           "text": "nito",
-          "start": 28.01,
-          "end": 28.38,
-          "conf": 0.87
+          "start": 28.51,
+          "end": 28.85,
+          "conf": 0.88
         },
         {
           "text": "ay",
-          "start": 28.38,
-          "end": 28.63,
-          "conf": 0.89
-        },
-        {
-          "text": "glucose",
-          "start": 28.63,
-          "end": 29.18,
-          "conf": 0.77
-        },
-        {
-          "text": "at",
-          "start": 29.18,
-          "end": 29.42,
+          "start": 28.85,
+          "end": 29.08,
           "conf": 0.9
         },
         {
-          "text": "oxygen.",
-          "start": 29.42,
-          "end": 29.91,
+          "text": "glucose",
+          "start": 29.08,
+          "end": 29.6,
           "conf": 0.75
+        },
+        {
+          "text": "at",
+          "start": 29.6,
+          "end": 29.82,
+          "conf": 0.86
+        },
+        {
+          "text": "oxygen.",
+          "start": 29.82,
+          "end": 30.28,
+          "conf": 0.76
         }
       ],
       "gaps": [],
       "engine": "fixture",
-      "latencyMs": 854
+      "latencyMs": 1072
     },
     {
       "id": "clean-008",
-      "start": 30.71,
-      "end": 33.79,
-      "snrDb": 22.7,
+      "start": 30.8,
+      "end": 33.3,
+      "snrDb": 26.6,
       "words": [
         {
           "text": "Kaya",
-          "start": 30.71,
-          "end": 31.06,
-          "conf": 0.91
-        },
-        {
-          "text": "mahalaga",
-          "start": 31.06,
-          "end": 31.64,
-          "conf": 0.88
-        },
-        {
-          "text": "ang",
-          "start": 31.64,
-          "end": 31.93,
+          "start": 30.8,
+          "end": 31.08,
           "conf": 0.97
         },
         {
-          "text": "mga",
-          "start": 31.93,
-          "end": 32.22,
+          "text": "mahalaga",
+          "start": 31.08,
+          "end": 31.55,
           "conf": 0.99
         },
         {
-          "text": "halaman",
-          "start": 32.22,
-          "end": 32.74,
+          "text": "ang",
+          "start": 31.55,
+          "end": 31.79,
           "conf": 0.92
+        },
+        {
+          "text": "mga",
+          "start": 31.79,
+          "end": 32.03,
+          "conf": 0.92
+        },
+        {
+          "text": "halaman",
+          "start": 32.03,
+          "end": 32.45,
+          "conf": 0.87
         },
         {
           "text": "sa",
-          "start": 32.74,
-          "end": 32.98,
-          "conf": 0.92
+          "start": 32.45,
+          "end": 32.64,
+          "conf": 0.87
         },
         {
           "text": "ating",
-          "start": 32.98,
-          "end": 33.38,
-          "conf": 0.87
+          "start": 32.64,
+          "end": 32.97,
+          "conf": 0.9
         },
         {
           "text": "buhay.",
-          "start": 33.38,
-          "end": 33.79,
-          "conf": 0.87
+          "start": 32.97,
+          "end": 33.3,
+          "conf": 0.89
         }
       ],
       "gaps": [],
       "engine": "fixture",
-      "latencyMs": 971
+      "latencyMs": 865
     },
     {
       "id": "clean-009",
-      "start": 34.59,
-      "end": 39.21,
-      "snrDb": 26.5,
+      "start": 33.3,
+      "end": 38.81,
+      "snrDb": 26.8,
       "words": [
         {
           "text": "Si",
-          "start": 34.59,
-          "end": 34.8,
-          "conf": 0.99
-        },
-        {
-          "text": "Jan",
-          "start": 34.8,
-          "end": 35.07,
-          "conf": 0.88
-        },
-        {
-          "text": "ang",
-          "start": 35.72,
-          "end": 35.99,
+          "start": 33.3,
+          "end": 33.56,
           "conf": 0.95
         },
         {
-          "text": "nakatuklas",
-          "start": 35.99,
-          "end": 36.63,
-          "conf": 0.89
+          "text": "Jan",
+          "start": 33.56,
+          "end": 33.88,
+          "conf": 0.78
         },
         {
-          "text": "na",
-          "start": 36.63,
-          "end": 36.85,
+          "text": "ang",
+          "start": 34.65,
+          "end": 34.97,
           "conf": 0.91
         },
         {
-          "text": "kailangan",
-          "start": 36.85,
-          "end": 37.44,
+          "text": "nakatuklas",
+          "start": 34.97,
+          "end": 35.73,
           "conf": 0.88
         },
         {
+          "text": "na",
+          "start": 35.73,
+          "end": 35.99,
+          "conf": 0.96
+        },
+        {
+          "text": "kailangan",
+          "start": 35.99,
+          "end": 36.7,
+          "conf": 0.93
+        },
+        {
           "text": "ng",
-          "start": 37.44,
-          "end": 37.65,
+          "start": 36.7,
+          "end": 36.95,
           "conf": 0.96
         },
         {
           "text": "liwanag",
-          "start": 37.65,
-          "end": 38.14,
-          "conf": 0.93
-        },
-        {
-          "text": "sa",
-          "start": 38.14,
-          "end": 38.35,
-          "conf": 0.96
-        },
-        {
-          "text": "prosesong",
-          "start": 38.35,
-          "end": 38.94,
+          "start": 36.95,
+          "end": 37.53,
           "conf": 0.9
         },
         {
-          "text": "ito.",
-          "start": 38.94,
-          "end": 39.21,
+          "text": "sa",
+          "start": 37.53,
+          "end": 37.78,
           "conf": 0.89
+        },
+        {
+          "text": "prosesong",
+          "start": 37.78,
+          "end": 38.49,
+          "conf": 0.97
+        },
+        {
+          "text": "ito.",
+          "start": 38.49,
+          "end": 38.81,
+          "conf": 0.99
         }
       ],
       "gaps": [
         {
-          "start": 35.07,
-          "end": 35.72,
+          "start": 33.88,
+          "end": 34.65,
           "reason": {
             "kind": "low_confidence",
             "alternatives": [
@@ -611,213 +617,213 @@
         }
       ],
       "engine": "fixture",
-      "latencyMs": 1476
+      "latencyMs": 945
     },
     {
       "id": "clean-010",
-      "start": 40.01,
-      "end": 42.32,
-      "snrDb": 20.2,
+      "start": 39.95,
+      "end": 41.65,
+      "snrDb": 22.2,
       "words": [
         {
           "text": "Write",
-          "start": 40.01,
-          "end": 40.42,
+          "start": 39.95,
+          "end": 40.26,
           "conf": 0.96
         },
         {
           "text": "that",
-          "start": 40.42,
-          "end": 40.78,
-          "conf": 0.97
-        },
-        {
-          "text": "down",
-          "start": 40.78,
-          "end": 41.14,
-          "conf": 0.96
-        },
-        {
-          "text": "in",
-          "start": 41.14,
-          "end": 41.37,
+          "start": 40.26,
+          "end": 40.52,
           "conf": 0.89
         },
         {
-          "text": "your",
-          "start": 41.37,
-          "end": 41.73,
+          "text": "down",
+          "start": 40.52,
+          "end": 40.78,
           "conf": 0.93
         },
         {
-          "text": "notebook.",
-          "start": 41.73,
-          "end": 42.32,
+          "text": "in",
+          "start": 40.78,
+          "end": 40.95,
           "conf": 0.91
+        },
+        {
+          "text": "your",
+          "start": 40.95,
+          "end": 41.21,
+          "conf": 0.86
+        },
+        {
+          "text": "notebook.",
+          "start": 41.21,
+          "end": 41.65,
+          "conf": 0.86
         }
       ],
       "gaps": [],
       "engine": "fixture",
-      "latencyMs": 728
+      "latencyMs": 965
     },
     {
       "id": "clean-011",
-      "start": 43.12,
-      "end": 45.04,
-      "snrDb": 21.6,
+      "start": 42.55,
+      "end": 44.58,
+      "snrDb": 27.2,
       "words": [
         {
           "text": "Remember,",
-          "start": 43.12,
-          "end": 43.52,
-          "conf": 0.98
-        },
-        {
-          "text": "walang",
-          "start": 43.52,
-          "end": 43.84,
-          "conf": 0.91
-        },
-        {
-          "text": "araw,",
-          "start": 43.84,
-          "end": 44.08,
+          "start": 42.55,
+          "end": 42.97,
           "conf": 0.89
         },
         {
           "text": "walang",
-          "start": 44.08,
-          "end": 44.4,
+          "start": 42.97,
+          "end": 43.31,
+          "conf": 0.89
+        },
+        {
+          "text": "araw,",
+          "start": 43.31,
+          "end": 43.56,
+          "conf": 0.89
+        },
+        {
+          "text": "walang",
+          "start": 43.56,
+          "end": 43.9,
           "conf": 0.89
         },
         {
           "text": "photosynthesis.",
-          "start": 44.4,
-          "end": 45.04,
+          "start": 43.9,
+          "end": 44.58,
+          "conf": 0.84
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 701
+    },
+    {
+      "id": "clean-012",
+      "start": 45.47,
+      "end": 51.415515,
+      "snrDb": 21.0,
+      "words": [
+        {
+          "text": "Okay,",
+          "start": 45.47,
+          "end": 45.85,
+          "conf": 0.92
+        },
+        {
+          "text": "any",
+          "start": 45.85,
+          "end": 46.17,
+          "conf": 0.88
+        },
+        {
+          "text": "questions?",
+          "start": 46.17,
+          "end": 46.88,
+          "conf": 0.96
+        },
+        {
+          "text": "Sino",
+          "start": 46.88,
+          "end": 47.26,
+          "conf": 0.9
+        },
+        {
+          "text": "ang",
+          "start": 47.26,
+          "end": 47.58,
+          "conf": 0.96
+        },
+        {
+          "text": "makakapagsabi",
+          "start": 47.58,
+          "end": 48.54,
+          "conf": 0.99
+        },
+        {
+          "text": "kung",
+          "start": 48.54,
+          "end": 48.92,
+          "conf": 0.91
+        },
+        {
+          "text": "saan",
+          "start": 48.92,
+          "end": 49.31,
+          "conf": 0.91
+        },
+        {
+          "text": "nangyayari",
+          "start": 49.31,
+          "end": 50.07,
+          "conf": 0.98
+        },
+        {
+          "text": "ang",
+          "start": 50.07,
+          "end": 50.39,
+          "conf": 0.95
+        },
+        {
+          "text": "photosynthesis?",
+          "start": 50.39,
+          "end": 51.42,
           "conf": 0.77
         }
       ],
       "gaps": [],
       "engine": "fixture",
-      "latencyMs": 1339
-    },
-    {
-      "id": "clean-012",
-      "start": 45.84,
-      "end": 50.07,
-      "snrDb": 27.6,
-      "words": [
-        {
-          "text": "Okay,",
-          "start": 45.84,
-          "end": 46.11,
-          "conf": 0.98
-        },
-        {
-          "text": "any",
-          "start": 46.11,
-          "end": 46.34,
-          "conf": 0.96
-        },
-        {
-          "text": "questions?",
-          "start": 46.34,
-          "end": 46.84,
-          "conf": 0.96
-        },
-        {
-          "text": "Sino",
-          "start": 46.84,
-          "end": 47.11,
-          "conf": 0.92
-        },
-        {
-          "text": "ang",
-          "start": 47.11,
-          "end": 47.34,
-          "conf": 0.88
-        },
-        {
-          "text": "makakapagsabi",
-          "start": 47.34,
-          "end": 48.02,
-          "conf": 0.96
-        },
-        {
-          "text": "kung",
-          "start": 48.02,
-          "end": 48.3,
-          "conf": 0.9
-        },
-        {
-          "text": "saan",
-          "start": 48.3,
-          "end": 48.57,
-          "conf": 0.96
-        },
-        {
-          "text": "nangyayari",
-          "start": 48.57,
-          "end": 49.11,
-          "conf": 0.99
-        },
-        {
-          "text": "ang",
-          "start": 49.11,
-          "end": 49.34,
-          "conf": 0.91
-        },
-        {
-          "text": "photosynthesis?",
-          "start": 49.34,
-          "end": 50.07,
-          "conf": 0.8
-        }
-      ],
-      "gaps": [],
-      "engine": "fixture",
-      "latencyMs": 1442
+      "latencyMs": 854
     },
     {
       "id": "clean-013",
-      "start": 50.87,
-      "end": 52.79,
-      "snrDb": 23.5,
+      "start": 52.391127,
+      "end": 54.43,
+      "snrDb": 21.7,
       "words": [
         {
           "text": "Very",
-          "start": 50.87,
-          "end": 51.19,
-          "conf": 0.86
-        },
-        {
-          "text": "good,",
-          "start": 51.19,
-          "end": 51.51,
-          "conf": 0.99
-        },
-        {
-          "text": "Maria!",
-          "start": 51.51,
-          "end": 51.88,
-          "conf": 0.94
-        },
-        {
-          "text": "Sa",
-          "start": 51.88,
-          "end": 52.1,
+          "start": 52.39,
+          "end": 52.73,
           "conf": 0.93
         },
         {
+          "text": "good,",
+          "start": 52.73,
+          "end": 53.07,
+          "conf": 0.98
+        },
+        {
+          "text": "Maria!",
+          "start": 53.07,
+          "end": 53.47,
+          "conf": 0.92
+        },
+        {
+          "text": "Sa",
+          "start": 53.47,
+          "end": 53.69,
+          "conf": 0.97
+        },
+        {
           "text": "chloroplast.",
-          "start": 52.1,
-          "end": 52.79,
-          "conf": 0.89
+          "start": 53.69,
+          "end": 54.43,
+          "conf": 0.87
         }
       ],
       "gaps": [],
       "engine": "fixture",
-      "latencyMs": 899
+      "latencyMs": 957
     }
   ]
 }
