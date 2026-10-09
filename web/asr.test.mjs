@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
-import { WhisperEngine } from './asr.js';
+import { WhisperEngine, trimLoopTail } from './asr.js';
 import { buildHotwordPrompt } from './hotwords.js';
 import { measureHotwordBias, readGold, wer } from './hw-eval.js';
 
@@ -274,5 +274,62 @@ test('measureHotwordBias scores the real gold file', async () => {
   assert.equal(result.goldPath, 'lessons/gold/lesson-clean.transcript.txt');
   assert.equal(typeof result.werWithout, 'number');
   assert.equal(typeof result.werWith, 'number');
+  await engine.dispose();
+});
+
+// ── loop trimming (P2, from the base-model run: "Write that down…" → "nga nga nga…") ──
+
+test('a looping tail is cut: real words stay, only the loop becomes a gap', async () => {
+  harness.decodeText = 'ang chlorophyll nga nga nga nga';
+  harness.chunks = [
+    { text: 'ang', timestamp: [0, 0.2] },
+    { text: ' chlorophyll', timestamp: [0.2, 0.7] },
+    { text: ' nga', timestamp: [0.7, 0.8] },
+    { text: ' nga', timestamp: [0.8, 0.9] },
+    { text: ' nga', timestamp: [0.9, 1.0] },
+    { text: ' nga', timestamp: [1.0, 1.1] },
+  ];
+  const engine = new WhisperEngine();
+  const seg = await engine.transcribe(new Float32Array(2 * 16000), { startSec: 10, snrDb: 20 });
+  assert.deepEqual(seg.words.map((w) => w.text), ['ang', 'chlorophyll']);
+  assert.ok(seg.words.every((w) => w.conf === null));
+  assert.deepEqual(seg.gaps, [{ start: 10.7, end: 12, reason: { kind: 'repetition_suppressed' } }]);
+  await engine.dispose();
+});
+
+test('a line that is only a loop is still one repetition gap', async () => {
+  harness.decodeText = 'nga nga nga nga nga';
+  harness.chunks = Array.from({ length: 5 }, (_, i) => ({ text: ' nga', timestamp: [i * 0.1, i * 0.1 + 0.1] }));
+  const engine = new WhisperEngine();
+  const seg = await engine.transcribe(new Float32Array(16000), { startSec: 0, snrDb: 20 });
+  assert.deepEqual(seg.words, []);
+  assert.deepEqual(seg.gaps, [{ start: 0, end: 1, reason: { kind: 'repetition_suppressed' } }]);
+  await engine.dispose();
+});
+
+test('one word before a loop is not enough to keep', async () => {
+  harness.decodeText = 'okay yukong yukong yukong';
+  harness.chunks = [{ text: 'okay', timestamp: [0, 0.3] }, ...[1, 2, 3].map((i) => ({ text: ' yukong', timestamp: [i * 0.2, i * 0.2 + 0.2] }))];
+  const engine = new WhisperEngine();
+  const seg = await engine.transcribe(new Float32Array(16000), { startSec: 0, snrDb: 20 });
+  assert.deepEqual(seg.words, []);
+  assert.equal(seg.gaps[0].reason.kind, 'repetition_suppressed');
+  await engine.dispose();
+});
+
+test('trimLoopTail: two-word units, unknown loop times, and no loop', () => {
+  const ch = (texts, timed = true) => texts.map((t, i) => ({ text: t, timestamp: timed ? [i * 0.3, i * 0.3 + 0.3] : [null, null] }));
+  const two = trimLoopTail(ch(['magandang', ' umaga', ' salamat', ' po', ' salamat', ' po', ' salamat', ' po']));
+  assert.equal(two.text, 'magandang umaga');
+  assert.equal(two.loopFromRel, 0.6);
+  assert.equal(trimLoopTail(ch(['sa', ' loob', ' na', ' na', ' na'], false)).loopFromRel, null);
+  assert.equal(trimLoopTail(ch(['ang', ' output', ' nito', ' ay', ' glucose'])), null);
+});
+
+test('load asks for the per-device default model unless the URL overrides it', async () => {
+  const engine = new WhisperEngine();
+  await engine.transcribe(new Float32Array(16000), { startSec: 0, snrDb: 20 });
+  const load = harness.instances[0].posted.find((m) => m.type === 'load');
+  assert.equal(load.model, null);
   await engine.dispose();
 });
