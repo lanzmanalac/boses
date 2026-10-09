@@ -1,34 +1,56 @@
-/* Boses — styles.css
- * Owner: P3. Nobody else edits this file.
+/* ============================================================================
+ * Boses — styles.css
+ * Owner: P3 / design lane. Nobody else edits this file.
  *
- * Two things in here are accessibility requirements, not decoration
- * (Boses.md Step 5 / Step 8):
+ * Design direction: "academic paper" — a warm, paper-like light surface with
+ * serif type for the caption stream. It reads as a study document rather than
+ * a terminal, which matches the artifact the product ends with: a printed
+ * lesson sheet. Dark mode is a dimmed paper (warm charcoal), not pure black.
+ *
+ * Source of truth for the token values: design/tokens.css (the hand-off spec).
+ * The tokens are INLINED below rather than @import-ed, because web/ must stay
+ * self-contained for the service worker and the offline claim. design/ is
+ * documentation; this file is the shipped product.
+ *
+ * ---------------------------------------------------------------------------
+ * TWO THINGS IN HERE ARE ACCESSIBILITY REQUIREMENTS, NOT DECORATION:
  *   - the caption type scale is user-adjustable and defaults LARGE
- *   - contrast has two deliberate levels, and the high level is the default
+ *   - contrast is user-selectable, and "maximum separation" is one deliberate
+ *     step on a scale (it is no longer the default)
  *
  * Layout is 360px-first: the phone propped on a desk is the design target,
  * not an afterthought (ARCHITECTURE.md ADR-0003).
  *
- * No web fonts. Airplane mode is the normal operating condition, and a font
+ * NO WEB FONTS. Airplane mode is the normal operating condition, and a font
  * fetch that fails is a caption that does not render.
- */
+ *
+ * DOM CONTRACT — breaking any of these silently breaks the product:
+ *   #stage, #captions, #hud, #sheet, [data-seg="<id>"], .seg
+ * captions.js uses [data-seg] + offsetTop to flag the segment the reader is
+ * ACTUALLY LOOKING AT. Rename it and "I missed this" keeps working, keeps
+ * tapping successfully, and flags the wrong text. See design/SPEC.md §8.
+ * ========================================================================== */
 
 /* ── tokens ─────────────────────────────────────────────────────────────── */
 
 :root {
-  color-scheme: dark light;
+  color-scheme: light;
 
-  /* Type scale. Every text size is derived from this one multiplier so the
-     whole interface — not just the captions — grows with the user's setting. */
+  /* -- The one multiplier. Every size derives from it, so one slider scales
+     the WHOLE interface — chrome and captions together. */
   --type-scale: 1;
 
-  --step-0: calc(0.875rem * var(--type-scale));
-  --step-1: calc(1rem * var(--type-scale));
-  --step-2: calc(1.25rem * var(--type-scale));
-  --step-3: calc(1.625rem * var(--type-scale));
-  /* The caption size. ~28px at scale 1 — legible at arm's length on a desk. */
-  --step-caption: calc(1.75rem * var(--type-scale));
-  --step-print: calc(11.5pt * var(--type-scale));
+  --step--2: calc(0.6875rem * var(--type-scale));
+  --step--1: calc(0.8125rem * var(--type-scale));
+  --step-0:  calc(0.9375rem * var(--type-scale));
+  --step-1:  calc(1.125rem  * var(--type-scale));
+  --step-2:  calc(1.375rem  * var(--type-scale));
+  --step-3:  calc(1.875rem  * var(--type-scale));
+
+  /* THE CAPTION SIZE. 30px at scale 1 — legible at arm's length on a desk.
+     The single most important number in this file. */
+  --step-caption: calc(1.875rem * var(--type-scale));
+  --step-print:   calc(11.5pt * var(--type-scale));
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -36,83 +58,221 @@
   --space-4: 1rem;
   --space-5: 1.5rem;
   --space-6: 2rem;
+  --space-7: 3rem;
 
-  --radius: 10px;
-  --tap-min: 48px; /* minimum comfortable touch target */
+  --radius-sm: 4px;
+  --radius:    8px;
+  --radius-lg: 14px;
 
-  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --font-caption: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-print: Georgia, "Times New Roman", serif;
+  /* Paper does not cast dramatic shadows. Depth comes from hairline rules. */
+  --shadow-sheet: 0 1px 3px rgb(61 48 32 / 0.10), 0 8px 24px rgb(61 48 32 / 0.07);
+  --shadow-pop:   0 2px 8px rgb(61 48 32 / 0.14);
+
+  --tap-min: 48px;
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+             "Noto Sans", sans-serif;
+  --font-caption: Charter, "Bitstream Charter", "Charis SIL", Georgia,
+             "Iowan Old Style", "Noto Serif", serif;
+  --font-print: Georgia, "Times New Roman", "Noto Serif", serif;
+  /* Tabular figures: proportional digits jitter while a lesson runs, which
+     reads as instability. */
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas,
+               "Liberation Mono", monospace;
+
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* caption stream */
+  --caption-measure: 34ch;  /* long lines are hard to track at reading speed */
+  --caption-lead: 1.55;
+  --caption-buffer: 6;      /* newest-first: see design/SPEC.md §3.1 */
+  --caption-gap: var(--space-5);
+  /* Older lines dissolve at the top edge rather than being cropped. */
+  --caption-fade-mask: linear-gradient(
+    to bottom, transparent 0, var(--bg) 4rem
+  );
+  --gap-pad-x: var(--space-2);
+  --gap-pad-y: 0.1em;
+
+  /* gap anatomy — see design/SPEC.md §4 */
+  --gap-rule-w: 4px;
+  --gap-hatch-angle: 135deg;
+  --gap-hatch-size: 6px;
+  --gap-hatch-line: 2px;
+
+  /* print */
+  --print-hatch-opacity: 0.55;  /* heavier on paper; light hatch dies in toner */
 }
 
-/* Standard contrast — dark room, low glare. */
+/* Paper theme — tinted, never #FFF. Pure white behind dense serif text causes
+   halation for low-vision readers, and the tint survives a washed-out
+   projector. */
 :root,
-[data-contrast="standard"] {
-  --bg: #101418;
-  --bg-raised: #1a2129;
-  --bg-sunken: #0a0d10;
-  --fg: #e8edf2;
-  --fg-muted: #9fb0c0;
-  --border: #2c3742;
-  --accent: #7fd1c1;
+[data-theme="paper"] {
+  --bg:        #F6F2EA;
+  --bg-raised: #FFFDF8;
+  --bg-sunken: #EBE5D9;
 
-  /* A gap is a first-class thing to look at, not a character in a string. */
-  --gap-bg: #3a2a10;
-  --gap-fg: #ffd489;
-  --gap-border: #b8801f;
+  --fg:        #211C16;
+  --fg-muted:  #5C5347;
+  --fg-faint:  #8A8073;
 
-  --flag: #ff9d8a;
-  --ok: #6fd08c;
-  --warn: #ffc861;
-  --bad: #ff8f8f;
+  --border:        #C9BFAE;
+  --border-strong: #8A8073;
+
+  --accent:       #1F4E5F;
+  --accent-quiet: #E3EBEE;
+  --accent-fg:    #FFFDF8;
+
+  /* A gap carries THREE signals: heavy left rule, hatched fill, and a
+     plain-language reason. On dark paper an amber tint alone would read as a
+     footnote — so it is never just a tint. The hatch also survives greyscale
+     printing, which the amber does not. */
+  --gap-fill:  #F7E7C4;
+  --gap-rule:  #A8681A;
+  --gap-ink:   #4A2E08;
+  --gap-hatch: #A8681A;
+
+  --flag:      #A03D2A;
+  --flag-quiet:#F5DED8;
+
+  --ok:   #2F6B3C;
+  --warn: #8A5A12;
+  --bad:  #9B2C2C;
+
+  --focus-ring: #1F4E5F;
+  color: var(--fg);
+  background: var(--bg);
 }
 
-/* High contrast — maximum separation, for bright rooms or low vision.
-   This is the default because legibility is the product. */
-[data-contrast="high"] {
-  --bg: #000000;
+/* Dimmed paper — warm charcoal, not #000. Coherent identity across themes,
+   and less harsh than pure black across a 40-minute class. */
+[data-theme="dimmed"] {
+  color-scheme: dark;
+
+  --bg:        #1C1A17;
+  --bg-raised: #262320;
+  --bg-sunken: #131210;
+
+  --fg:        #F2EDE4;
+  --fg-muted:  #B5AC9D;
+  --fg-faint:  #7E766A;
+
+  --border:        #3B3733;
+  --border-strong: #6B6259;
+
+  --accent:       #7FBBC9;
+  --accent-quiet: #233036;
+  --accent-fg:    #0F1416;
+
+  --gap-fill:  #3A2B12;
+  --gap-rule:  #D99A3C;
+  --gap-ink:   #F5D89B;
+  --gap-hatch: #D99A3C;
+
+  --flag:      #E08A72;
+  --flag-quiet: #3A211A;
+
+  --ok:   #7FC98D;
+  --warn: #E0B45F;
+  --bad:  #E08A8A;
+
+  --focus-ring: #7FBBC9;
+}
+
+/* Maximum separation — an override layer, not a theme. For low-vision users
+   and badly-lit classrooms. Nothing about the layout changes.
+   NOTE: this used to be the default. It is not any more, on purpose. */
+[data-contrast="max"] {
+  --bg:        #000000;
   --bg-raised: #000000;
   --bg-sunken: #000000;
-  --fg: #ffffff;
-  --fg-muted: #e6e6e6;
-  --border: #ffffff;
-  --accent: #7ff0dd;
-
-  --gap-bg: #241a00;
-  --gap-fg: #ffe08a;
-  --gap-border: #ffc861;
-
-  --flag: #ffb3a3;
-  --ok: #8ff0a8;
-  --warn: #ffd98a;
-  --bad: #ff9d9d;
+  --fg:        #FFFFFF;
+  --fg-muted:  #FFFFFF;
+  --fg-faint:  #E0E0E0;
+  --border:        #FFFFFF;
+  --border-strong: #FFFFFF;
+  --accent:       #7FF0DD;
+  --accent-quiet: #00201C;
+  --accent-fg:    #000000;
+  --gap-fill:  #000000;
+  --gap-rule:  #FFD866;
+  --gap-ink:   #FFD866;
+  --gap-hatch: #FFD866;
+  --flag:    #FFB3A3;
+  --ok:      #8FF0A8;
+  --warn:    #FFD98A;
+  --bad:     #FF9D9D;
+  --focus-ring: #7FF0DD;
 }
 
 /* ── base ───────────────────────────────────────────────────────────────── */
 
 * { box-sizing: border-box; }
 
+/* Any element with a `display` value set by an author rule ignores the
+   browser's default [hidden] { display: none }. `.foot { display: flex }` is
+   exactly that case, so setting el.hidden = true silently did nothing and the
+   footer stayed on screen through the sessions and sheet views. This guard is
+   load-bearing for every showState() call in index.html. */
+[hidden] { display: none !important; }
+
+/* ── the viewport contract ──────────────────────────────────────────────────
+ * THIS IS THE FIX FOR CROPPED CHROME.
+ *
+ * The app is a fixed-chrome layout: the header, the status strip and the
+ * footer are always fully visible and never scroll. Only the middle region
+ * scrolls. That matters more than usual here, because the two people using
+ * this are looking at it while a class is happening — a Start button that has
+ * scrolled off the bottom of a phone screen is a failed lesson.
+ *
+ * The failure this replaces: `html,body{height:100%}` + `.app{min-height:
+ * 100dvh}` fought each other, so the app GREW past the viewport instead of
+ * constraining itself, the footer fell below the fold, and a sticky header
+ * had nothing stable to stick to.
+ *
+ * 100vh is declared first as a fallback for browsers without dvh; 100dvh wins
+ * where supported, because dvh is what actually accounts for mobile browser
+ * chrome collapsing as the URL bar hides. */
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  height: 100dvh;
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-ui);
-  font-size: var(--step-1);
+  font-size: var(--step-0);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: contain;
+  /* The app manages its own scrolling regions. Bouncing the whole document
+     behind a fixed header and footer feels broken on a phone. */
+  overflow: hidden;
+  /* Set deliberately rather than left to the UA default: the default flash on
+     tap is a translucent overlay that reads as a rendering glitch on a warm
+     paper surface. Tinted to match the button face instead. */
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
-/* Anything focusable gets a visible ring. Keyboard and switch access are part
-   of the accessibility claim; an invisible focus ring quietly breaks it. */
+/* A mouse user should not get rubber-banding when the document itself does
+   not scroll. Pointer type matters: `none` on a touch device would also kill
+   pull-to-refresh, so it is scoped to fine pointers only. */
+@media (pointer: fine) {
+  html { overscroll-behavior: none; }
+}
+
+/* Anything focusable gets a visible ring. An invisible focus ring quietly
+   breaks the accessibility claim. */
 :focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .sr-only {
@@ -126,13 +286,23 @@ body {
 }
 
 /* ── app frame ──────────────────────────────────────────────────────────── */
+/* A column of: fixed chrome (bar, hud, foot) + exactly one scrolling region.
+   Everything that scrolls sets min-height:0, which is what lets a flex child
+   actually shrink below its content instead of pushing the footer off. */
 
+/* Full-bleed shell. The chrome (header, status strip, footer) spans the whole
+   screen edge to edge; only the CONTENT inside it is constrained. Previously
+   .app carried max-width + margin:auto, which left the bars stopping short of
+   the browser edges on any laptop — the header looked like a floating panel
+   rather than part of the window. */
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
-  max-width: 60rem;
-  margin-inline: auto;
+  height: 100vh;   /* fallback */
+  height: 100dvh;
+  max-width: none;
+  margin-inline: 0;
+  overflow: hidden;
   padding: env(safe-area-inset-top) env(safe-area-inset-right)
            env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
@@ -141,21 +311,22 @@ body {
 
 .bar {
   display: flex;
+  flex: 0 0 auto;          /* chrome: never scrolls, never shrinks */
   flex-wrap: wrap;
-  align-items: center;
+  align-items: baseline;
   gap: var(--space-2) var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 2px solid var(--border);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border);
   background: var(--bg-raised);
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 20;
 }
 
 .brand {
+  font-family: var(--font-caption);
   font-size: var(--step-2);
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.005em;
   margin: 0;
   flex: 1 1 auto;
   min-width: 0;
@@ -163,32 +334,44 @@ body {
 
 .brand small {
   display: block;
-  font-size: var(--step-0);
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
   font-weight: 400;
   color: var(--fg-muted);
 }
 
-/* ── signal-quality HUD ─────────────────────────────────────────────────── */
-/* Live capture/network state. Its job is to stop the student wondering
-   whether a gap is the app's fault or the room's fault. */
+/* ── the honesty strip ──────────────────────────────────────────────────── */
+/* Always visible. Answers continuously: is the app failing, or is the room
+   loud? Without it a student cannot tell a bug from a bad classroom — both
+   look identical, which is to say: captions stop. */
 
 .hud {
   display: flex;
+  flex: 0 0 auto;          /* chrome */
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-2);
   align-items: center;
-  font-size: var(--step-0);
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--accent-quiet);
+  font-size: var(--step--2);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  /* The strip wraps to two rows on a narrow phone. That is allowed, but it
+     must never be allowed to eat the caption area — cap it. */
+  max-height: 6.5rem;
+  overflow-y: auto;
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
+  padding: 0.15rem var(--space-2);
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--fg-muted);
+  background: var(--bg-raised);
   white-space: nowrap;
 }
 
@@ -208,48 +391,52 @@ body {
 .chip[data-state="bad"]::before { background: var(--bad); }
 .chip[data-state="idle"]::before { background: transparent; border: 1px solid currentColor; }
 
-/* Offline is a success state for this product, not an error. */
-.chip[data-state="offline"] { color: var(--accent); border-color: var(--accent); }
+/* Offline is the INTENDED state for this product, not an error. */
+.chip[data-state="offline"] {
+  color: var(--accent); border-color: var(--accent); background: var(--bg-raised);
+}
 .chip[data-state="offline"]::before { background: transparent; }
 
-/* ── controls ───────────────────────────────────────────────────────────── */
+/* The unverified tag. ADR-0002: the decoder exposes no per-word confidence, so
+   a gap means "not reliably captured" — NOT "the model felt unsure". Stating
+   this persistently is what makes the whole product credible. */
+.chip[data-state="unverified"] {
+  color: var(--gap-ink);
+  border-color: var(--gap-rule);
+  background: var(--gap-fill);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  white-space: normal;
+}
+.chip[data-state="unverified"]::before { display: none; }
 
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-raised);
+.chip-note {
+  flex: 1 1 100%;
+  white-space: normal;
+  line-height: 1.4;
+  font-family: var(--font-ui);
 }
 
-.control {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--step-0);
-  color: var(--fg-muted);
-}
+/* The unverified chip has a long and a short label; see captions.js. */
+.chip-short { display: none; }
 
-.control input[type="range"] {
-  width: 8rem;
-  accent-color: var(--accent);
-}
+/* ── buttons ────────────────────────────────────────────────────────────── */
 
 .btn {
   min-height: var(--tap-min);
   min-width: var(--tap-min);
   padding: var(--space-2) var(--space-4);
   font: inherit;
-  font-size: var(--step-1);
+  font-size: var(--step-0);
   font-weight: 600;
   color: var(--fg);
-  background: var(--bg-sunken);
-  border: 2px solid var(--border);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   cursor: pointer;
   touch-action: manipulation;
+  transition: border-color var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease);
 }
 
 .btn:hover:not(:disabled) { border-color: var(--accent); }
@@ -258,108 +445,277 @@ body {
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #04120f;
+  color: var(--accent-fg);
+  font-size: var(--step-1);
+  padding: var(--space-3) var(--space-5);
 }
 
 .btn-danger { border-color: var(--bad); color: var(--bad); }
+.btn-danger:hover:not(:disabled) { background: var(--bg-sunken); }
 
-/* ── caption viewport ───────────────────────────────────────────────────── */
+/* ── setup / pre-flight ─────────────────────────────────────────────────── */
+/* This screen did not exist. It is the first thing a judge sees and the first
+   thing a real student sees. "No setup wizard" in Boses.md means no account
+   and no config form — not no explanation. */
+
+.setup {
+  flex: 1 1 auto;
+  min-height: 0;           /* the line that lets a flex child scroll */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: var(--space-6) var(--space-5) var(--space-7);
+  font-family: var(--font-caption);
+  max-width: 44rem;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.setup[hidden] { display: none; }
+
+/* ── headings ───────────────────────────────────────────────────────────── */
+/* Balance prevents a one-word last line, which on a narrow phone reads as a
+   mistake even though it is correct. */
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+.setup h1 {
+  font-size: var(--step-3);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-3);
+}
+
+.lede {
+  font-size: var(--step-1);
+  line-height: 1.55;
+  color: var(--fg);
+  margin: 0 0 var(--space-5);
+  max-width: 40ch;
+}
+
+.setup-step {
+  border-top: 1px solid var(--border);
+  padding: var(--space-4) 0;
+}
+
+.setup-step:last-of-type { border-bottom: 1px solid var(--border); }
+
+.setup-step h2 {
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  margin: 0 0 var(--space-2);
+}
+
+.setup-step p {
+  margin: 0 0 var(--space-2);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  font-family: var(--font-ui);
+  color: var(--fg-muted);
+  max-width: 52ch;
+}
+
+.setup-step[data-done="true"] h2 { color: var(--ok); }
+
+/* Honest limitation, stated up front. Softening this into "high accuracy"
+   anywhere is a lie the product would then be making.
+   Visual treatment lives in the .callout rule in the craft layer below, so
+   there is exactly one place that decides how this block looks. */
+.callout {
+  font-family: var(--font-ui);
+  margin: var(--space-4) 0;
+  border-left: var(--gap-rule-w) solid var(--gap-rule);
+}
+
+.progress {
+  height: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  overflow: hidden;
+  margin: var(--space-2) 0;
+}
+
+.progress > i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width var(--dur-base) var(--ease);
+}
+
+.setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.vocab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+}
+
+.vocab-list li {
+  padding: 0.1rem var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  color: var(--fg-muted);
+}
+
+/* ── caption stage ──────────────────────────────────────────────────────── */
 /* The single most important element on screen. */
 
 .stage {
   flex: 1 1 auto;
+  min-height: 0;           /* without this the caption area pushes the footer
+                              off-screen instead of scrolling */
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
 .stage[hidden] { display: none; }
 
 .captions {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  padding: var(--space-4);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: var(--space-5) var(--space-5) var(--space-6);
   font-family: var(--font-caption);
   font-size: var(--step-caption);
-  line-height: 1.65;
+  line-height: var(--caption-lead);
   /* A caption that runs off the right edge is a caption nobody read. */
   overflow-wrap: anywhere;
   scroll-padding-block: var(--space-6);
 }
 
 .captions p.seg {
-  margin: 0 0 var(--space-4);
-  max-width: 34ch; /* measure, not full width — long lines are hard to track */
+  margin: 0 0 var(--caption-gap);
+  max-width: var(--caption-measure);
+}
+
+/* Oldest lines dissolve rather than being abruptly cropped at the top. */
+.captions {
+  -webkit-mask-image: var(--caption-fade-mask);
+          mask-image: var(--caption-fade-mask);
 }
 
 .captions p.seg[data-flagged="true"] {
   border-left: 4px solid var(--flag);
-  padding-left: var(--space-3);
+  padding-left: var(--space-4);
+  background: var(--flag-quiet);
+  padding-block: var(--space-2);
+  border-radius: 0 var(--radius) var(--radius) 0;
 }
 
 /* Segment timecode, small and out of the reading path. */
 .seg-time {
-  font-family: var(--font-ui);
-  font-size: var(--step-0);
-  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+  color: var(--fg-faint);
   margin-right: var(--space-2);
   font-variant-numeric: tabular-nums;
+  vertical-align: 0.15em;
 }
 
 .seg-meta {
   display: block;
   font-family: var(--font-ui);
-  font-size: var(--step-0);
-  color: var(--fg-muted);
+  font-size: var(--step--2);
+  color: var(--fg-faint);
   margin-top: var(--space-1);
 }
 
+/* Empty state — the first thing a student sees. Explain, do not just wait. */
+.captions .empty {
+  max-width: 44ch;
+}
+
+.captions .empty h2 {
+  font-family: var(--font-caption);
+  font-size: var(--step-2);
+  margin: 0 0 var(--space-2);
+  line-height: 1.25;
+}
+
+.captions .empty p {
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  color: var(--fg-muted);
+  margin: 0 0 var(--space-2);
+}
+
 /* ── the gap ────────────────────────────────────────────────────────────── */
-/* A gap is styled deliberately, not interpolated as a string.
-   The reason is always spelled out in plain language, because
-   "you did not hear this" and "the app could not hear this" are
-   different messages and the student is entitled to know which one it is. */
+/* A gap is styled deliberately, not interpolated as a string. Three signals:
+   heavy left rule (shape), diagonal hatch (mass, and it survives greyscale),
+   and a plain-language reason (meaning). See design/SPEC.md §4. */
 
 .gap {
   display: inline-block;
-  padding: 0 var(--space-2);
-  margin-inline: 0.15em;
-  background: var(--gap-bg);
-  color: var(--gap-fg);
-  border: 2px dashed var(--gap-border);
-  border-radius: var(--radius);
-  font-size: 0.7em;
-  line-height: 1.4;
-  vertical-align: 0.15em;
-  cursor: help;
-}
-
-.gap-label {
+  padding: var(--gap-pad-y, 0.1em) var(--space-2);
+  margin-inline: 0.12em;
+  background-color: var(--gap-fill);
+  /* Hatch strength is a legibility budget, not a style choice.
+     At FULL strength the stripes run straight through the 21px label and
+     measurably hurt the one thing this element exists to do: be read. The
+     texture still has to survive greyscale printing, so it is reduced rather
+     than removed — a faint texture that survives a photocopier beats a
+     strong one nobody can read. */
+  background-image: repeating-linear-gradient(
+    var(--gap-hatch-angle),
+    color-mix(in srgb, var(--gap-hatch) 42%, transparent) 0 var(--gap-hatch-line),
+    transparent var(--gap-hatch-line) var(--gap-hatch-size)
+  );
+  color: var(--gap-ink);
+  border-left: var(--gap-rule-w) solid var(--gap-rule);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-family: var(--font-ui);
-  font-size: 0.6em;
-  letter-spacing: 0.02em;
-  text-transform: lowercase;
-  opacity: 0.95;
+  font-size: 0.72em;
+  line-height: 1.4;
+  vertical-align: 0.12em;
+  font-weight: 600;
 }
 
-/* Alternatives are ALWAYS rendered as uncertain. Never as a suggestion,
-   never as a correction — a wrong guess presented confidently is the exact
-   failure this product exists to prevent. */
+/* Heavier conditions warrant a heavier visual. Escalation is visible. */
+.gap--hard {
+  border: 1px solid var(--gap-rule);
+  border-left-width: var(--gap-rule-w);
+  font-weight: 700;
+}
+
 .gap-alt {
   font-family: var(--font-ui);
-  font-size: 0.62em;
-  color: var(--gap-fg);
+  font-size: 0.78em;
+  font-weight: 400;
+  color: var(--gap-ink);
   opacity: 0.85;
+  margin-left: 0.35em;
 }
 
 /* ── pacing control ─────────────────────────────────────────────────────── */
-/* Read-along pacing (Boses.md Step 5): new lines append, but the view never
-   yanks itself away from a reader who has scrolled up to re-read. */
+/* Read-along pacing: new lines append, but the view never yanks itself away
+   from a reader who has scrolled up to re-read. */
 
 .jump {
   position: absolute;
-  inset-inline: var(--space-4);
+  inset-inline: var(--space-5);
   bottom: var(--space-4);
   display: flex;
   justify-content: center;
@@ -370,18 +726,19 @@ body {
 
 .jump .btn {
   pointer-events: auto;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
+  box-shadow: var(--shadow-pop);
 }
 
 /* ── bottom bar ─────────────────────────────────────────────────────────── */
 
 .foot {
   display: flex;
+  flex: 0 0 auto;          /* chrome: the actions must always be reachable */
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
-  padding: var(--space-3) var(--space-4);
-  border-top: 2px solid var(--border);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--border);
   background: var(--bg-raised);
   /* Clear of the iOS home indicator. */
   padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
@@ -390,14 +747,168 @@ body {
 .foot .spacer { flex: 1 1 auto; }
 
 .status {
-  font-size: var(--step-0);
+  font-size: var(--step--1);
   color: var(--fg-muted);
   min-height: 1.4em;
+  line-height: 1.4;
 }
 
-/* ── sheet view ─────────────────────────────────────────────────────────── */
+/* ── settings sheet ─────────────────────────────────────────────────────── */
+/* Chrome recedes during a lesson. The student needs the captions and two
+   actions; nothing else earns permanent space. */
+
+.settings-btn { font-size: var(--step--1); }
+
+.sheet-panel {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 60;
+  background: var(--bg-raised);
+  border-top: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-sheet);
+  padding: var(--space-5) var(--space-5)
+           max(var(--space-5), env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-height: 85dvh;
+  overflow-y: auto;
+  /* A drawer must not scroll the page behind it. */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sheet-panel[hidden] { display: none; }
+
+.sheet-panel h2 {
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  margin: 0;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgb(33 28 22 / 0.42);
+  z-index: 55;
+}
+
+.scrim[hidden] { display: none; }
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  color: var(--fg);
+}
+
+.setting > span:first-child {
+  flex: 0 0 9rem;
+  color: var(--fg-muted);
+}
+
+.setting input[type="range"] {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+  min-height: var(--tap-min);
+  accent-color: var(--accent);
+}
+
+.setting output {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+  min-width: 4ch;
+}
+
+.setting-group {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.setting-group .btn { flex: 0 1 auto; font-size: var(--step--1); }
+.setting-group .btn[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+
+/* ── sessions ───────────────────────────────────────────────────────────── */
+
+.sessions {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: var(--space-6) var(--space-5) var(--space-7);
+  max-width: 44rem;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.sessions[hidden] { display: none; }
+
+.sessions h1 {
+  font-family: var(--font-caption);
+  font-size: var(--step-3);
+  margin: 0 0 var(--space-2);
+  line-height: 1.2;
+}
+
+.sessions-lede {
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  margin: 0 0 var(--space-5);
+  max-width: 48ch;
+  line-height: 1.6;
+}
+
+.session-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.session-card h2 {
+  font-family: var(--font-caption);
+  font-size: var(--step-1);
+  margin: 0 0 var(--space-1);
+}
+
+.session-card dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+  font-variant-numeric: tabular-nums;
+}
+
+.session-card dt { color: var(--fg-faint); }
+.session-card dd { margin: 0; color: var(--fg-muted); }
+
+/* ── study sheet view ───────────────────────────────────────────────────── */
 
 .sheet-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: var(--space-5) var(--space-4);
   background: var(--bg-sunken);
   font-family: var(--font-print);
@@ -407,6 +918,16 @@ body {
 
 .sheet-view[hidden] { display: none; }
 
+.sheet-actions {
+  padding: var(--space-4);
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+  max-width: 62rem;
+  margin-inline: auto;
+}
+
 /* On screen the sheet is shown on white, because it is a preview of paper. */
 .sheet-view .page {
   background: #fff;
@@ -415,9 +936,11 @@ body {
   margin-inline: auto;
   padding: 0.6in 0.7in;
   border: 1px solid var(--border);
+  box-shadow: var(--shadow-sheet);
 }
 
 .sheet-view h1 { font-size: 1.5em; margin: 0 0 0.1em; }
+
 .sheet-view h2 {
   font-size: 1.05em;
   margin: 1.4em 0 0.35em;
@@ -425,27 +948,35 @@ body {
   border-bottom: 2px solid #000;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  break-after: avoid-page;
 }
 
 .sheet-view ul { margin: 0; padding-left: 1.3em; }
-.sheet-view li { margin-bottom: 0.3em; }
+.sheet-view li { margin-bottom: 0.3em; break-inside: avoid; }
 .sheet-view .meta { color: #333; font-size: 0.85em; }
 
 /* Coverage figure gets real weight — the student must see how much of this
-   record they can actually rely on. */
+   record they can rely on before relying on it. */
 .coverage {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   margin: var(--space-2) 0 0;
   flex-wrap: wrap;
+  break-inside: avoid;
+}
+
+.coverage .num {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.3em;
 }
 
 .coverage .bar-mini {
   flex: 1 1 12rem;
   height: 1.1em;
   min-width: 8rem;
-  background: #ddd;
+  background: #eee;
   border: 1px solid #000;
   overflow: hidden;
 }
@@ -456,14 +987,29 @@ body {
   background: #000;
 }
 
-.coverage .num { font-weight: 700; font-variant-numeric: tabular-nums; }
-
 /* The verbatim transcript. Never summarised away. */
 .transcript-body {
   font-size: 0.9em;
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* Gaps on paper get the SAME treatment as the screen, hatched and all, so a
+   gap is still a gap on the page. Heavier hatch: light texture dies in toner. */
+.print-gap {
+  display: inline-block;
+  padding: 0 0.3em;
+  border-left: 3px solid #000;
+  background-color: #fff;
+  background-image: repeating-linear-gradient(
+    var(--gap-hatch-angle),
+    #000 0 2px,
+    #fff 2px 5px
+  );
+  color: #000;
+  font-weight: 700;
+  font-size: 0.85em;
 }
 
 .draft-mark {
@@ -478,21 +1024,169 @@ body {
 
 .print-only { display: none; }
 
-/* ── narrow screens ─────────────────────────────────────────────────────── */
+/* The flag hint. Pinned with the footer so the two always read together. */
+#flag-hint {
+  flex: 0 0 auto;
+  padding: 0 var(--space-5) var(--space-3);
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--fg-muted);
+}
 
+#flag-hint[hidden] { display: none; }
+
+/* ── scrollbars ─────────────────────────────────────────────────────────── */
+/* A default 15px grey trough on the side of a warm paper layout reads as a
+   rendering bug, not a control. Slim, tinted, and unobtrusive. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track { background: transparent; }
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover { background-color: var(--fg-faint); background-clip: content-box; }
+
+/* The landing page scrolls, but it is a touch-first page on a phone — a
+   permanently visible trough down the side is clutter that implies a desktop
+   interaction that is not available. Hide it; the scroll still works. */
+.setup {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.setup::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* ── responsive ─────────────────────────────────────────────────────────── */
+
+/* Centre the CONTENT of the full-bleed chrome. Declared HERE, after the
+   .bar/.hud/.foot rules, because those use the `padding` shorthand — which
+   resets padding-inline — and a later shorthand would win over an earlier
+   longhand at equal specificity. A fluid inline padding reserves the same
+   margin on both sides at any width; on a narrow phone it collapses to plain
+   padding on its own. */
+.bar, .hud, .foot {
+  padding-inline:
+    max(var(--space-4), calc((100% - 62rem) / 2 + var(--space-5)));
+}
+/* Reacts to width AND to remaining height. A phone propped on a desk is often
+   landscape and short, and a layout tuned only for portrait wastes the two
+   things that matter most there: caption height and a reachable Start button.
+   Chrome is shed before content is — never the other way round. */
+
+/* Narrow phone: the committed 360px target. */
 @media (max-width: 30rem) {
-  .captions { padding: var(--space-3); }
-  .bar, .controls, .foot { padding-inline: var(--space-3); }
-  /* Controls wrap onto their own rows rather than crushing each other. */
-  .control { flex: 1 1 100%; }
-  .control input[type="range"] { flex: 1 1 auto; width: auto; }
+  .bar, .hud, .foot { padding-inline: var(--space-4); }
+  .captions { padding: var(--space-4) var(--space-4) var(--space-5); }
+  .setup, .sessions { padding: var(--space-5) var(--space-4) var(--space-6); }
+
+  /* The measure is dropped at narrow widths: the viewport is already short,
+     and a ch-based measure only fights it. */
   .captions p.seg { max-width: none; }
+
+  .foot .btn { flex: 1 1 auto; }
+
+  .setting { flex-wrap: wrap; }
+  .setting > span:first-child { flex: 0 0 100%; }
+
+  .sheet-panel { padding-inline: var(--space-4); }
+
+  /* Buttons stop wrapping to their own rows at this width. */
+  .bar .settings-btn { flex: 1 1 auto; }
+
+  /* Chrome is expensive on a 780px-tall phone and the captions are the
+     point. The tagline costs two wrapped lines here, and the long form of
+     the unverified chip pushes the status strip to three rows. Both are
+     dropped; the full unverified sentence still appears on the setup
+     callout, so nothing is actually withheld from the student. */
+  .brand small { display: none; }
+  .chip-full { display: none; }
+  .chip-short { display: inline; }
+
+  /* Tighten the strip so it fits two rows rather than three. */
+  .hud { gap: var(--space-1); padding-block: var(--space-1); }
+  .chip { padding: 0.1rem var(--space-2); font-size: var(--step--2); }
+
+  .settings-btn { padding-inline: var(--space-3); }
+
+  /* ONE entry point to saved lessons per device class.
+     The merge brought in footer buttons for open/delete alongside the header
+     "Saved lessons" control, which is the same feature twice. On a laptop two
+     rows of footer is affordable; on a phone it cost ~130px of caption height
+     for nothing. The header button is always visible on both, so the footer
+     duplicates step aside on narrow screens. Nothing is lost. */
+  #open-saved-btn, #delete-saved-btn { display: none; }
+}
+
+/* Short viewport — landscape phone, or a small laptop window. */
+@media (max-height: 34rem) {
+  .bar { padding-block: var(--space-2); }
+  .brand small { display: none; }
+  .captions { padding-block: var(--space-3); }
+  .captions p.seg { margin-bottom: var(--space-3); }
+  .hud { padding-block: var(--space-1); }
+  .foot { padding-block: var(--space-2); }
+  .btn { min-height: var(--tap-min); }
+}
+
+/* Very short — a landscape phone in a browser with chrome visible. Chrome is
+   now competing directly with the caption area for pixels, so it goes. */
+@media (max-height: 26rem) {
+  .brand small { display: none; }
+  .brand { font-size: var(--step-1); }
+  .hud { max-height: 4rem; font-size: var(--step--2); }
+  /* The status line is NOT hidden here. It carries role="status" and
+     aria-live="polite", so it is the feedback channel for anyone not looking
+     at the screen. Trimming it for space would take that away from them.
+     It shrinks and truncates instead — quieter, never absent. */
+  .status {
+    font-size: var(--step--2);
+    min-width: 0;
+    flex: 1 1 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #flag-hint { display: none; }       /* one line is a luxury here */
+  .foot { padding-block: var(--space-2); }
+  .captions p.seg { margin-bottom: var(--space-2); }
+  .btn { padding-block: var(--space-1); }
+}
+
+/* Wide — a school laptop. Give the caption measure room to breathe and stop
+   the chrome from stranding itself at the far edges of a wide window. */
+@media (min-width: 48rem) {
+  .bar, .hud, .foot { padding-inline: var(--space-6); }
+  .setup, .sessions { padding-block: var(--space-7); }
+}
+
+/* Hover-capable pointers only. On touch, a hover style that sticks after a tap
+   leaves a phantom "pressed" look on the next interaction. */
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled) { transform: translateY(-1px); }
+}
+
+/* Touch targets: the floor is --tap-min (48px), but when a viewport is short
+   the two never trade — the target shrinks only if the row would overflow. */
+@media (max-height: 26rem) {
+  .foot { flex-wrap: nowrap; }
+  .foot .btn { flex: 1 1 0; padding-inline: var(--space-2); font-size: var(--step--1); }
 }
 
 /* ── print ──────────────────────────────────────────────────────────────── */
 /* The terminal artifact. Everything that is app chrome disappears; the sheet
-   is the whole page. Print colours are forced because the browser default is
-   to drop backgrounds and leave a black box on white. */
+   is the whole page. */
 
 @media print {
   @page {
@@ -504,15 +1198,29 @@ body {
     background: #fff !important;
     color: #000 !important;
     font-size: var(--step-print);
+    /* Print is the one place the document itself must scroll again — the app
+       shell is a fixed-height flex column, which is wrong for paper. */
+    height: auto !important;
+    overflow: visible !important;
   }
 
-  .bar, .controls, .foot, .jump, .no-print, .sheet-actions { display: none !important; }
+  .bar, .hud, .foot, .jump, .no-print, .sheet-actions,
+  .scrim, .sheet-panel, .setup, .sessions, #flag-hint { display: none !important; }
 
-  .app { display: block; min-height: 0; max-width: none; }
+  .app {
+    display: block;
+    height: auto !important;
+    min-height: 0;
+    max-width: none;
+    overflow: visible !important;
+    padding: 0;
+  }
   .stage { display: none; }
 
   .sheet-view {
     display: block !important;
+    height: auto !important;
+    overflow: visible !important;
     padding: 0;
     background: #fff;
     font-size: var(--step-print);
@@ -520,20 +1228,898 @@ body {
 
   .sheet-view .page {
     border: 0;
+    box-shadow: none;
     max-width: none;
     padding: 0;
   }
 
   .print-only { display: revert; }
 
-  /* Keep a section header with its first item, never orphaned at a page break. */
-  h2 { break-after: avoid-page; }
-  li { break-inside: avoid; }
-  .coverage, .meta { break-inside: avoid; }
-
   a[href]::after { content: ""; }
 }
 
+/* ── motion ─────────────────────────────────────────────────────────────── */
+/* One place to override. Nothing here may be load-bearing for comprehension:
+   captions must be fully readable with every duration set to 0. */
+
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  :root { --dur-fast: 0.01ms; --dur-base: 0.01ms; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+ * CRAFT LAYER
+ * Appended, not interleaved — nothing above is modified, so this can be
+ * removed wholesale without touching the accessibility foundation.
+ *
+ * THE BRACKET IS THE LOGO.
+ * The product's core idea is `[not heard clearly]` — a visible hole where
+ * words should be. That bracket is the brand, and it echoes down through the
+ * wordmark, the gap treatment, the chips and the favicon. The identity is
+ * taken FROM the thesis rather than applied on top of it.
+ *
+ * Every rule here is decorative EXCEPT where noted, and it must never reduce
+ * the legibility of a caption or the visibility of a gap.
+ * ========================================================================== */
+
+:root {
+  --grain: 0.028;
+  --lift: 0 1px 2px rgb(61 48 32 / 0.08);
+  --lift-2: 0 2px 6px rgb(61 48 32 / 0.10), 0 1px 2px rgb(61 48 32 / 0.06);
+  --pulse-fast: 1.6s;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dimmed"] {
+  --grain: 0.035;
+  --lift: 0 1px 2px rgb(0 0 0 / 0.30);
+  --lift-2: 0 2px 8px rgb(0 0 0 / 0.36);
+}
+
+/* ── paper grain ────────────────────────────────────────────────────────── */
+/* A tiled SVG-noise data URI. Costs no network request, scales to any screen,
+   and sits at ~3% opacity — present, never noticeable as "texture". It is what
+   stops the light theme reading as flat #FFF plastic. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.app { position: relative; z-index: 1; }
+
+/* ── the wordmark ───────────────────────────────────────────────────────── */
+/* Boses set in serif between two brackets. The brackets are the product. */
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4ch;
+  letter-spacing: -0.015em;
+}
+
+.brand .mark {
+  color: var(--gap-rule);
+  font-weight: 400;
+  opacity: 0.9;
+  transform: translateY(-0.06em);
+}
+
+.brand small { letter-spacing: 0.01em; }
+
+/* ── icon system ────────────────────────────────────────────────────────── */
+/* Inline SVG only. No icon font, no sprite sheet request — a missing asset in
+   airplane mode is a missing affordance. Icons are decorative and hidden from
+   assistive tech; the text beside them carries the meaning. */
+
+.ico {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.btn .ico { margin-right: 0.45em; vertical-align: -0.18em; }
+
+/* ── button craft ───────────────────────────────────────────────────────── */
+/* Depth from a hairline plus a lifted shadow on hover. Paper does not do
+   dramatic shadows; restraint is the point. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--lift);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+
+.btn:hover:not(:disabled) {
+  box-shadow: var(--lift-2);
+  transform: translateY(-1px);
+}
+
+/* A pressed button must not move DOWN and off its own target for a
+   low-vision user hunting for it. It settles instead. */
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 92%, white 8%), var(--accent));
+  box-shadow: var(--lift-2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  border-color: var(--accent);
+  filter: brightness(1.06);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--fg-muted);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--bg-sunken);
+  border-color: var(--border);
+  color: var(--fg);
+}
+
+/* ── the listening pulse ────────────────────────────────────────────────── */
+/* A live capture must feel alive, otherwise the student cannot tell a working
+   microphone from a dead one. Two expanding rings, and ONLY while capturing.
+
+   This is the one ambient animation in the product. It carries no information
+   that is not also in the chip's text, and it is disabled outright under
+   prefers-reduced-motion (guaranteed again at the end of this file). */
+
+.chip[data-state="listening"] {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: var(--bg-raised);
+  position: relative;
+}
+
+.chip[data-state="listening"]::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ok);
+  opacity: 0;
+  pointer-events: none;
+  animation: boses-pulse var(--pulse-fast) var(--ease-out) infinite;
+}
+
+@keyframes boses-pulse {
+  0%   { opacity: 0.55; transform: scale(1); }
+  70%  { opacity: 0;    transform: scale(1.14); }
+  100% { opacity: 0;    transform: scale(1.14); }
+}
+
+/* ── setup stepper ──────────────────────────────────────────────────────── */
+/* A numbered rail instead of four flat sections. The student can see at a
+   glance how many steps are behind them and which one they are on — before
+   class, when a surprise is expensive. */
+
+.setup-step {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  column-gap: var(--space-3);
+  align-items: start;
+}
+
+.setup-step > .step-num {
+  grid-row: 1 / span 99;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised);
+  color: var(--fg-muted);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
+/* the rail */
+.setup-step > .step-num::after {
+  content: "";
+  position: absolute;
+  top: 2.5rem; left: 50%;
+  width: 1px;
+  height: calc(100% + var(--space-4));
+  transform: translateX(-50%);
+  background: var(--border);
+}
+
+.setup-step:last-of-type > .step-num::after { display: none; }
+
+.setup-step[data-done="true"] > .step-num {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+}
+
+.setup-step[data-done="true"] > .step-num::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.3rem;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg) translate(1px, -2px);
+}
+
+.setup-step[data-done="true"] > .step-num > * { display: none; }
+
+/* ── progress ───────────────────────────────────────────────────────────── */
+
+.progress {
+  box-shadow: inset 0 1px 2px rgb(61 48 32 / 0.12);
+}
+
+.progress > i {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--accent) 80%, black 20%), var(--accent));
+}
+
+/* An indeterminate shimmer for work whose size we cannot honestly state. */
+.progress[data-indeterminate="true"] > i {
+  width: 34% !important;
+  animation: boses-slide 1.4s var(--ease) infinite;
+}
+
+@keyframes boses-slide {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(400%); }
+}
+
+/* ── the honest callout ─────────────────────────────────────────────────── */
+/* The most important block on the setup screen. It gets the bracket rule —
+   the same visual language as a gap — because it is making the same kind of
+   statement: here is something we are NOT claiming.
+
+   The hatch here is deliberately VERY faint. The first pass used the full
+   gap-strength hatch and put high-contrast ochre stripes straight through
+   15px glyphs, which made the sentence hard to read. On a caption the texture
+   carries meaning; on a paragraph of prose the texture is just interference.
+   Keep the heavy left rule, keep the warm fill, and let the type breathe. */
+.callout {
+  position: relative;
+  box-shadow: var(--lift);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background-color: var(--gap-fill);
+  background-image: repeating-linear-gradient(
+    var(--gap-hatch-angle),
+    transparent 0 5px,
+    color-mix(in srgb, var(--gap-hatch) 14%, transparent) 5px 6px
+  );
+  color: var(--gap-ink);
+  padding: var(--space-4) var(--space-5);
+  /* The reason this block exists is that it must be READ. */
+  font-size: var(--step-0);
+  line-height: 1.65;
+}
+
+.callout strong { letter-spacing: 0.01em; }
+.callout em { font-style: italic; }
+
+/* ── cards ──────────────────────────────────────────────────────────────── */
+
+.session-card,
+.setup-actions + .session-card {
+  box-shadow: var(--lift);
+  transition: box-shadow var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
+}
+
+.session-card:hover {
+  box-shadow: var(--lift-2);
+  transform: translateY(-1px);
+}
+
+/* ── the sheet as a stack of paper ──────────────────────────────────────── */
+/* The sheet is the artifact the product exists to produce. It should look like
+   a page sitting on a desk, not a div. Three offset edges = three sheets
+   waiting to be printed. */
+
+.sheet-view .page {
+  position: relative;
+  box-shadow:
+    0 1px 2px rgb(61 48 32 / 0.10),
+    0 10px 30px rgb(61 48 32 / 0.12),
+    0 30px 60px -20px rgb(61 48 32 / 0.10);
+}
+
+.sheet-view .page::before,
+.sheet-view .page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  z-index: -1;
+}
+
+.sheet-view .page::before { transform: rotate(-0.5deg) translate(-6px, 5px); }
+.sheet-view .page::after  { transform: rotate(0.4deg)  translate(6px, 9px); }
+
+/* ── empty-state detail ─────────────────────────────────────────────────── */
+/* Waiting must never look broken. A slow bracket breathe says "standing by". */
+
+.captions .empty .bracket {
+  display: block;
+  color: var(--gap-rule);
+  font-size: 2.2rem;
+  line-height: 1;
+  margin-bottom: var(--space-3);
+  opacity: 0.55;
+  animation: boses-breathe 3.4s var(--ease) infinite;
+}
+
+@keyframes boses-breathe {
+  0%, 100% { opacity: 0.28; }
+  50%      { opacity: 0.62; }
+}
+
+/* ── settings panel arrival ─────────────────────────────────────────────── */
+
+.sheet-panel {
+  animation: boses-rise var(--dur-base) var(--ease-out);
+}
+
+@keyframes boses-rise {
+  from { transform: translateY(14px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+.scrim {
+  animation: boses-fade var(--dur-base) var(--ease-out);
+}
+
+@keyframes boses-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── type slider ────────────────────────────────────────────────────────── */
+/* The single most important accessibility control on the screen. It gets a
+   visible track so its position is legible, not just a native thumb. */
+
+.setting input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.setting input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+}
+
+.setting input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px; height: 24px;
+  margin-top: -10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-raised);
+  box-shadow: var(--lift);
+}
+
+.setting input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+}
+
+.setting input[type="range"]::-moz-range-thumb {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-raised);
+  box-shadow: var(--lift);
+}
+
+/* ── focus: never remove, always strengthen ─────────────────────────────── */
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--focus-ring) 22%, transparent);
+}
+
+/* ============================================================================
+ * MOTION SYSTEM
+ *
+ * THE RULE: motion belongs to chrome, to state changes, and to feedback.
+ * It NEVER moves a caption someone is trying to read. Every animation here is
+ * decorative in the strict sense — switch all of them off and no information
+ * is lost, which is exactly what makes shipping them safe.
+ *
+ * Durations are deliberately short. This UI is used at reading speed in a
+ * classroom; anything over ~400ms starts to feel like the app is busy rather
+ * than working.
+ * ========================================================================== */
+
+:root {
+  --dur-instant: 90ms;
+  --dur-enter:  160ms;
+  --dur-settle: 260ms;
+  --dur-drift:  620ms;
+
+  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:   cubic-bezier(0.5, 0, 0.75, 0);
+  --ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* ── theme cross-fade ───────────────────────────────────────────────────── */
+/* Switching paper ↔ dimmed should feel like a lamp coming up, not a hard cut.
+   Scoped to the surfaces that actually change colour — transitioning `all`
+   here would repaint the whole tree and stutter on a low-end phone. */
+body,
+.bar,
+.hud,
+.foot,
+.captions,
+.gap,
+.chip,
+.btn,
+.setup-step > .step-num,
+.session-card,
+.setting-group .btn,
+.sheet-panel,
+.scrim,
+.sheet-view .page {
+  transition:
+    background-color var(--dur-settle) var(--ease-soft),
+    border-color     var(--dur-settle) var(--ease-soft),
+    color            var(--dur-settle) var(--ease-soft);
+}
+
+/* ── caption arrival ────────────────────────────────────────────────────── */
+/* A new segment settles into place rather than snapping. It does NOT slide,
+   and it does NOT type in: the student is mid-sentence and the eye is already
+   heading to the newest line. This is a fade plus a 2px settle, which reads as
+   "something arrived" without ever moving the text once it has landed. */
+@keyframes boses-arrive {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Scoped to .is-new, which the renderer sets ONLY on a genuinely new
+   segment. render() rebuilds innerHTML, so animating every .seg would
+   re-animate the entire transcript on every incoming line and the whole list
+   would visibly blink. */
+.captions p.seg.is-new {
+  animation: boses-arrive var(--dur-enter) var(--ease-out) both;
+}
+
+/* ── flag confirmation ──────────────────────────────────────────────────── */
+/* Previously "I missed this" gave feedback only in the status line, several
+   hundred pixels from the button — so a tap looked like it did nothing. The
+   flagged segment now acknowledges itself IN PLACE. This is the one piece of
+   motion that is genuinely load-bearing: it confirms the right span was
+   captured, which is the one thing that can silently go wrong. */
+@keyframes boses-flag {
+  0%   { background-color: var(--flag-quiet); }
+  35%  { background-color: var(--flag); }
+  100% { background-color: var(--flag-quiet); }
+}
+
+.captions p.seg[data-flagged="true"].was-flagged {
+  animation: boses-flag var(--dur-drift) var(--ease-soft);
+}
+
+/* ── setup step entrance ────────────────────────────────────────────────── */
+/* Staggered, so the four steps read as an ordered process rather than a wall.
+   The stagger is small (40ms) — enough to imply order, short enough not to
+   make a student wait for the last step to appear before reading the first. */
+.setup-step {
+  animation: boses-arrive var(--dur-settle) var(--ease-out) both;
+}
+.setup-step:nth-of-type(1) { animation-delay: 0ms; }
+.setup-step:nth-of-type(2) { animation-delay: 40ms; }
+.setup-step:nth-of-type(3) { animation-delay: 80ms; }
+.setup-step:nth-of-type(4) { animation-delay: 120ms; }
+
+/* ── skeleton shimmer ───────────────────────────────────────────────────── */
+/* Used only where we genuinely do not know the size of the work — the model
+   download. A fake determinate bar would be a lie about progress; this admits
+   it does not know either. */
+@keyframes boses-shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(340%); }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-sunken);
+  border-radius: var(--radius-sm);
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in srgb, var(--bg-raised) 92%, transparent),
+    transparent);
+  animation: boses-shimmer 1.5s var(--ease-soft) infinite;
+}
+
+/* ── the live level meter ───────────────────────────────────────────────── */
+/* A captioning app that shows no sign of listening feels broken, and the
+   student cannot tell a dead microphone from a quiet room. The meter is
+   driven by the REAL capture level (mic.signalQuality().levelDb), so it is a
+   functional readout, not a decoration.
+
+   It is aria-hidden: the SNR chip beside it carries the same information as
+   text, so a screen-reader user is not reading a bar graph out loud. */
+.meter {
+  --level: 0%;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.85em;
+  width: 1.5em;
+  margin-right: 0.15em;
+  align-self: center;
+  position: relative;
+}
+
+.meter > i {
+  display: block;
+  flex: 1;
+  background: currentColor;
+  opacity: 0.55;
+  border-radius: 1px;
+  min-height: 1px;
+}
+
+/* Bar heights read as a tiny equaliser. Two states: moving with the real
+   level (polled at 400ms, so the transition blends consecutive updates into
+   something that reads as movement), or a slow breath while paused so the
+   strip is never fully dead. */
+.meter[data-active="true"] > i {
+  transition: height var(--dur-settle) var(--ease-soft);
+}
+
+.meter[data-active="false"] {
+  animation: boses-breathe 3.4s var(--ease-soft) infinite;
+  opacity: 0.4;
+}
+
+.meter[data-state="warn"] { color: var(--warn); }
+.meter[data-state="bad"]  { color: var(--bad); }
+.meter[data-state="ok"]   { color: var(--ok); }
+
+/* ── the honest callout draws its rule ──────────────────────────────────── */
+/* The callout fades in. It used to reveal with clip-path, which clipped the
+   TEXT along with the background — mid-animation the paragraph was sliced
+   mid-sentence, which is unacceptably bad on the one block whose entire job
+   is to be read. Never clip a container that holds prose.
+
+   Own keyframes, `boses-rise-in`. It deliberately does NOT reuse
+   `boses-rule`: that one scales X for the heading accents, and a shared name
+   would squash this block horizontally. */
+@keyframes boses-rise-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.callout {
+  animation: boses-rise-in var(--dur-settle) var(--ease-out) both;
+}
+
+/* ── wordmark ───────────────────────────────────────────────────────────── */
+/* The brackets breathe, very slightly. Barely perceptible; it just stops the
+   header looking like static text. */
+@keyframes boses-mark {
+  0%, 100% { opacity: 0.78; }
+  50%      { opacity: 1; }
+}
+
+.brand .mark {
+  animation: boses-mark 5.2s var(--ease-soft) infinite;
+}
+
+/* ── the settings sheet ─────────────────────────────────────────────────── */
+
+@keyframes boses-rise {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+@keyframes boses-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.sheet-panel { animation: boses-rise var(--dur-settle) var(--ease-out); }
+.scrim       { animation: boses-fade var(--dur-settle) var(--ease-out); }
+
+/* ── the coverage number counts up ──────────────────────────────────────── */
+/* On the sheet. The number arriving by counting reads as a measurement being
+   taken. It settles on the true figure and never animates again. */
+@keyframes boses-count {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.coverage .num {
+  animation: boses-count var(--dur-drift) var(--ease-out) both;
+}
+
+/* ── the jump-to-newest button ──────────────────────────────────────────── */
+/* Appears when the student scrolls away from the newest line. It should feel
+   like an invitation, so it rises rather than blinking into existence. */
+.jump .btn {
+  animation: boses-rise var(--dur-enter) var(--ease-out);
+}
+
+/* ── print: re-declared LAST, after the craft layer ─────────────────────── */
+/* The craft rules above were appended after the main print block, so that
+   block alone does not reach them. Two of them would actively damage the
+   printout if left alone:
+     - body::before lays a fixed full-viewport grain over the sheet, so the
+       toner would carry a texture film across every page;
+     - .page::before/::after are the two fake sheets stacked behind the real
+       one, so the printer would try to produce three pages per sheet.
+   The terminal artifact must be the cleanest thing this product ever emits. */
+@media print {
+  body::before { display: none !important; }
+
+  .sheet-view .page::before,
+  .sheet-view .page::after { display: none !important; }
+
+  .sheet-view .page {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .btn, .chip, .ico { box-shadow: none; }
+}
+
+/* ============================================================================
+ * POLISH LAYER
+ *
+ * Everything here is additive and safe to delete wholesale. Three rules held
+ * throughout:
+ *
+ *   1. Nothing may reduce the legibility of a caption or the visibility of a
+ *      gap. Gaps were verified by rendering them in greyscale, because a
+ *      student photocopies the study sheet — anything added here that reads as
+ *      colour alone is a regression.
+ *   2. Nothing may add chrome height on a phone. The status strip and header
+ *      already cost ~150px of a 780px viewport; decoration goes inside the
+ *      space that exists, not on top of it.
+ *   3. Every effect must be `transform`/`opacity` where possible, and must
+ *      degrade to nothing under prefers-reduced-motion.
+ * ========================================================================== */
+
+/* ── a warm room light ──────────────────────────────────────────────────── */
+/* A very slight top-down warmth, as if light falls across a page on a desk.
+   Two stops, ~4% total. Enough to stop the background reading as flat paint;
+   not enough to notice as a gradient. Suppressed entirely in maximum
+   separation, where a light field would work against the goal. */
+body {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 4%, transparent) 0,
+    transparent 22rem
+  );
+  background-attachment: fixed;
+}
+
+[data-contrast="max"] { background-image: none; }
+
+/* ── the wordmark ───────────────────────────────────────────────────────── */
+/* The brackets pick up the gap ochre as a gradient, so the mark and the gaps
+   are visibly made of the same ink. */
+.brand .mark {
+  background: linear-gradient(180deg, var(--gap-rule), var(--accent));
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  animation: boses-mark 5.2s var(--ease-soft) infinite;
+}
+
+/* ── the caption area learns whether it has scrolled ───────────────────── */
+/* A functional detail that happens to look expensive: when there is history
+   above, a soft inset shadow appears at the top edge. It tells the student
+   "there is more up here" without adding a control. Set by captions.js, and it
+   costs zero pixels of layout. */
+.captions[data-scrolled="true"] {
+  box-shadow: inset 0 14px 14px -14px rgb(33 28 22 / 0.30);
+}
+
+[data-theme="dimmed"] .captions[data-scrolled="true"] {
+  box-shadow: inset 0 14px 14px -14px rgb(0 0 0 / 0.55);
+}
+
+/* ── segment hover, only where hovering exists ─────────────────────────── */
+/* On touch this would leave a phantom highlight after a tap, so it is scoped
+   to a fine pointer. */
+@media (hover: hover) and (pointer: fine) {
+  .captions p.seg {
+    border-radius: var(--radius-sm);
+    padding-inline: var(--space-2);
+    margin-inline: calc(-1 * var(--space-2));
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  .captions p.seg:hover {
+    background-color: color-mix(in srgb, var(--fg) 4%, transparent);
+  }
+}
+
+/* ── a flagged segment reads as a tab, not a highlight ─────────────────── */
+/* The student pinned something. It should look pinned: a solid flag rule, a
+   soft body, and a small notched corner so it stays findable when scrolling
+   back through the transcript. */
+.captions p.seg[data-flagged="true"] {
+  position: relative;
+  border-left: 5px solid var(--flag);
+  background: var(--flag-quiet);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--flag) 22%, transparent);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.captions p.seg[data-flagged="true"]::before {
+  content: "";
+  position: absolute;
+  top: 0; right: 0;
+  border: 10px solid transparent;
+  border-top-color: var(--flag);
+  border-right-color: var(--flag);
+  border-radius: 0 var(--radius) 0 0;
+}
+
+/* ── hard gaps carry a soft ochre bloom ────────────────────────────────── */
+/* Escalation you can see in peripheral vision while listening. This is the
+   one place a glow is safe: it strengthens an element that already has a
+   heavy rule and a hatch, and it is switched off in maximum separation where
+   it would only soften. */
+.gap--hard {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gap-rule) 35%, transparent),
+              0 0 14px -4px color-mix(in srgb, var(--gap-rule) 55%, transparent);
+}
+
+[data-contrast="max"] .gap--hard { box-shadow: none; }
+
+/* ── heading accent ────────────────────────────────────────────────────── */
+/* A short rule that draws itself in under the section headings. Reuses the
+   bracket language: same ochre, same weight. */
+.setup-step h2,
+.sessions h1 {
+  position: relative;
+}
+
+.setup-step h2::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: -2px;
+  width: 1.75rem;
+  height: 2px;
+  background: var(--gap-rule);
+  border-radius: 2px;
+  transform-origin: left center;
+  animation: boses-rule 520ms var(--ease-out) both;
+}
+
+@keyframes boses-rule {
+  from { opacity: 0; transform: scaleX(0); }
+  to   { opacity: 1; transform: scaleX(1); }
+}
+
+/* ── session cards ─────────────────────────────────────────────────────── */
+/* A card that does something on hover should say so. The arrow is the cue. */
+.session-card {
+  position: relative;
+  transition: transform var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.session-card::after {
+  content: "→";
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  color: var(--fg-faint);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .session-card:hover::after {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.session-card h2 { padding-right: 2rem; }
+
+/* ── settings panel: frosted, with a solid fallback ─────────────────────── */
+/* backdrop-filter where it exists, an opaque surface where it does not — an
+   unreadable panel would be far worse than a flat one. */
+.sheet-panel {
+  /* Frosted, but only lightly: at 86% the callout text behind it bled
+     through the "Display" heading and competed with the labels. The frost is
+     atmosphere, not a licence to make the controls harder to read. */
+  background: color-mix(in srgb, var(--bg-raised) 93%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+          backdrop-filter: blur(22px) saturate(1.5);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sheet-panel { background: var(--bg-raised); }
+}
+
+[data-contrast="max"] .sheet-panel {
+  background: var(--bg-raised);
+  -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+}
+
+.scrim {
+  background: color-mix(in srgb, var(--fg) 34%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+          backdrop-filter: blur(3px);
+}
+
+/* ── focus ring, one last word ─────────────────────────────────────────── */
+/* An outer halo that separates the ring from a busy background, so the ring
+   never disappears into a hatched gap. */
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--focus-ring) 20%, transparent),
+              0 0 0 2px var(--bg);
+}
+
+/* ── reduced motion: re-declared LAST, after the animations above ───────── */
+/* The animations above are deliberately written after the earlier
+   reduced-motion block, so that block alone would NOT catch them. This one
+   is last in the file and therefore wins. Every ambient animation in this
+   product is decorative: the captions, the gaps and the coverage figure are
+   all fully legible with every animation switched off. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

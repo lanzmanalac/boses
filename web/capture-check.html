@@ -27,6 +27,7 @@
   </select>
   <button id="replay">Replay file through guards</button>
   <button id="mic">Start mic</button>
+  <button id="download" disabled>Download log</button>
   <label><input type="checkbox" id="asr"> Show what Whisper hears (loads P1's model; first time needs internet)</label>
 </div>
 <p id="quality"></p>
@@ -71,7 +72,12 @@ const heardText = (seg) => {
   return raw ? `(${kind}) ${raw}` : `(${kind})`;
 };
 
+// Everything shown in the table, kept for 'Download log' (gate result + what Whisper heard).
+let entries = [], mode = '';
 const show = (seg) => {
+  const entry = { startSec: seg.startSec, endSec: seg.endSec, snrDb: seg.snrDb, result: seg.reason ?? 'sent_to_asr' };
+  entries.push(entry);
+  $('download').disabled = false;
   const r = seg.reason ?? 'DECODE';
   rows.insertAdjacentHTML('beforeend',
     `<tr class="${r}"><td>${seg.startSec.toFixed(2)}</td><td>${seg.endSec.toFixed(2)}</td><td>${seg.snrDb}</td><td>${r}</td><td></td></tr>`);
@@ -83,7 +89,10 @@ const show = (seg) => {
     const e = await getEngine();
     const t0 = performance.now();
     const out = await e.transcribe(seg.pcm, { startSec: seg.startSec, hotwords, snrDb: seg.snrDb, snrThresholdDb: 0 });
-    cell.innerHTML = `${esc(heardText(out))} <small>(${Math.round(performance.now() - t0)} ms)</small>`;
+    entry.whisperHeard = heardText(out);
+    entry.asrMs = Math.round(performance.now() - t0);
+    entry.engine = e.id;
+    cell.innerHTML = `${esc(entry.whisperHeard)} <small>(${entry.asrMs} ms)</small>`;
   }).catch((err) => { cell.textContent = `ASR failed: ${err.message}`; });
 };
 const summary = () => {
@@ -92,7 +101,7 @@ const summary = () => {
 };
 
 $('replay').onclick = async () => {
-  rows.innerHTML = '';
+  rows.innerHTML = ''; entries = []; mode = `replay:${$('file').value}`;
   const res = await fetch(`../lessons/sample/${$('file').value}.wav`);
   const buf = await new AudioContext().decodeAudioData(await res.arrayBuffer());
   const off = new OfflineAudioContext(1, Math.ceil(buf.duration * SAMPLE_RATE), SAMPLE_RATE);
@@ -106,13 +115,27 @@ $('replay').onclick = async () => {
   window.__lastReplay = { segments: rows.children.length, decoded: rows.querySelectorAll('.DECODE').length };
 };
 
-let cap = null, timer = 0;
+$('download').onclick = () => {
+  const report = {
+    page: 'capture-check', mode,
+    capture: cap?.exportLog?.() ?? lastCaptureLog ?? null,   // device, mic, settings, room floor per segment
+    segments: entries,                                       // gate result + what Whisper heard
+  };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
+  a.download = `boses-gate-log-${mode.replace(/[^\w-]/g, '_')}-${new Date().toISOString().slice(0, 19).replace(/:/g, '')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+let cap = null, timer = 0, lastCaptureLog = null;
 $('mic').onclick = async () => {
   if (cap) {
+    lastCaptureLog = cap.exportLog();
     await cap.stop(); cap = null; clearInterval(timer);
     $('mic').textContent = 'Start mic'; summary(); return;
   }
-  rows.innerHTML = '';
+  rows.innerHTML = ''; entries = []; mode = 'live-mic';
   cap = new MicCapture();
   cap.onSegment(show);
   try { await cap.start(); } catch (e) { $('status').textContent = `Mic failed: ${e.message}`; cap = null; return; }

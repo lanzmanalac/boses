@@ -1,14 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Boses">
-  <rect width="512" height="512" rx="96" fill="#000"/>
-  <!-- A caption bar with a visible gap in it: the product's core promise,
-       rendered as the mark itself. -->
-  <rect x="72" y="150" width="368" height="26" rx="13" fill="#7ff0dd"/>
-  <rect x="72" y="196" width="150" height="26" rx="13" fill="#7ff0dd"/>
-  <rect x="234" y="196" width="74" height="26" rx="6" fill="none" stroke="#ffc861" stroke-width="6" stroke-dasharray="12 9"/>
-  <rect x="320" y="196" width="120" height="26" rx="13" fill="#7ff0dd"/>
-  <rect x="72" y="242" width="250" height="26" rx="13" fill="#7ff0dd"/>
-  <rect x="334" y="242" width="106" height="26" rx="6" fill="none" stroke="#ffc861" stroke-width="6" stroke-dasharray="12 9"/>
-  <rect x="72" y="330" width="368" height="10" rx="5" fill="#3a3a3a"/>
-  <rect x="72" y="330" width="238" height="10" rx="5" fill="#ffffff"/>
-  <text x="72" y="412" fill="#7ff0dd" font-family="system-ui,sans-serif" font-size="58" font-weight="700">boses</text>
+  <!-- Paper ground. Tinted, never pure white — matches the app's surface. -->
+  <rect width="512" height="512" rx="96" fill="#F6F2EA"/>
+
+  <!-- The product's core promise, rendered as the mark itself: lines of a
+       caption where a visible hole sits exactly where words should be.
+       The hole is not decorative — it is the product. -->
+  <g>
+    <rect x="76" y="150" width="360" height="26" rx="13" fill="#211C16"/>
+
+    <rect x="76" y="200" width="146" height="26" rx="13" fill="#211C16"/>
+    <!-- the gap: heavy left rule + hatched fill, exactly as on screen -->
+    <rect x="240" y="198" width="86" height="30" fill="#F7E7C4"/>
+    <g fill="#A8681A" opacity="0.5">
+      <rect x="252" y="198" width="7" height="30"/><rect x="268" y="198" width="7" height="30"/>
+      <rect x="284" y="198" width="7" height="30"/><rect x="300" y="198" width="7" height="30"/>
+      <rect x="316" y="198" width="7" height="30"/>
+    </g>
+    <rect x="240" y="198" width="8" height="30" fill="#A8681A"/>
+    <rect x="342" y="200" width="94" height="26" rx="13" fill="#211C16"/>
+
+    <rect x="76" y="250" width="234" height="26" rx="13" fill="#211C16"/>
+    <rect x="328" y="248" width="86" height="30" fill="#F7E7C4"/>
+    <g fill="#A8681A" opacity="0.5">
+      <rect x="340" y="248" width="7" height="30"/><rect x="356" y="248" width="7" height="30"/>
+      <rect x="372" y="248" width="7" height="30"/><rect x="388" y="248" width="7" height="30"/>
+      <rect x="404" y="248" width="7" height="30"/>
+    </g>
+    <rect x="328" y="248" width="8" height="30" fill="#A8681A"/>
+  </g>
+
+  <!-- coverage rule: the honest 70%, filled and unfilled -->
+  <rect x="76" y="352" width="360" height="10" rx="5" fill="#C9BFAE"/>
+  <rect x="76" y="352" width="252" height="10" rx="5" fill="#1F4E5F"/>
+
+  <!-- The bracket. The identity, and the name. -->
+  <text x="76" y="440" fill="#A8681A" font-family="Georgia,serif" font-size="64" font-weight="400">[</text>
+  <text x="106" y="440" fill="#211C16" font-family="Georgia,serif" font-size="64" font-weight="700">Boses</text>
+  <text x="352" y="440" fill="#A8681A" font-family="Georgia,serif" font-size="64" font-weight="400">]</text>
 </svg>

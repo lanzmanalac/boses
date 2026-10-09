@@ -10,12 +10,14 @@ P2 makes sure Whisper only ever hears audio worth transcribing. Everything else 
 | --- | --- | --- |
 | Clean, noisy, noise-only recordings | `lessons/sample/` | ✅ merged |
 | Human-checked line timings + transcript (clean) | `lessons/gold/lesson-clean.*` | ✅ merged |
-| Human-checked line timings (noisy take) | `lessons/gold/lesson-noisy.labels.txt` | ✅ this branch |
+| Human-checked line timings and words (noisy take) | `lessons/gold/lesson-noisy.labels.txt` | ✅ verified against the audio by P2 |
 | Fixtures (clean / noisy / taglish), real timings | `lessons/fixtures/` | ✅ merged |
 | Hotword list | `lessons/hotwords/lesson.txt` | ✅ merged |
 | Mic capture + noise gate | `web/capture.js`, `web/noise.js` | ✅ merged, wired by P3 |
 | SNR sweep (20 / 10 / 5 / 0 dB) | `lessons/sweep/` | ✅ this branch |
 | Confirmed thresholds + per-segment gate report | `lessons/GATE-REPORT.md` | ✅ this branch |
+| Clipping check (first/last word of every line) | `lessons/GATE-REPORT.md` → Clipping check | ✅ |
+| Live gate log for device tests | `MicCapture.exportLog()`, **Download log** on `capture-check.html` | ✅ |
 | Live-mic test on laptop and phone | — | ⏳ pending |
 
 ## How it works
@@ -37,6 +39,7 @@ Gate checks, cheapest first: **too short** (< 0.3 s → `too_short`), **too quie
 | Minimum duration | **0.3 s** | Coughs/taps in the noise-only clip and noisy take are 0.2–0.6 s; no real line is shorter. |
 | Pause that ends an utterance | **0.5 s**, counted when the level is 5 dB above the room **or 22 dB below the speaker's own peak** | 0.35 s cut lines at commas (whisper-base WER 62% vs 46% at 0.5 s). In a quiet room breath and echo kept pauses above the room floor, so pieces ran to the 12 s limit (seen live too). The 22 dB rule gives a caption every ~4–6 s; cost: clean WER 57% vs 47% with 12 s pieces, noisy unchanged (58%). |
 | Longest piece | **12 s**, cut at the quietest moment of the last 1.5 s | Avoids splitting a word when someone talks without pausing. |
+| Audio kept around each piece | **0.2 s** before, **0.3 s** after; the rest of a pause is handed to the next piece | Clipping check: before this, soft sounds inside pauses were dropped (clean line 3 lost audio between pieces). Now real noisy take 13/13 lines arrive whole, clean 12/13 (the 13th: 0.14 s of breath-level sound at a label edge). |
 | Room calibration | first **1 s** after Start | Floor = 15th percentile of the last 5 s afterwards, so it follows the room. |
 
 All of these live in `DEFAULTS` in `web/noise.js`. Per-segment evidence for every recording: `lessons/GATE-REPORT.md` (`node lessons/tools/gate-report.mjs`).
@@ -47,6 +50,7 @@ All of these live in `DEFAULTS` in `web/noise.js`. Per-segment evidence for ever
 - **P4 — thresholds for `gateSegment()`**: import them instead of copying numbers, so there is one source of truth:
   `import { DEFAULTS } from './noise.js'` → `DEFAULTS.snrThresholdDb` (16), `DEFAULTS.minSpeechSec` (0.3). The repetition signal comes from P1's `asr.js`, not P2.
 - **P1 — test data**: audio `lessons/sample/*.wav`, labels `lessons/gold/*.labels.txt` (`start<TAB>end<TAB>[TL|EN|MIX] text`), hotwords `lessons/hotwords/lesson.txt`.
+- **Device test handoff (P1/P4):** on `capture-check.html`, tick *Show what Whisper hears*, **Start mic**, speak the script, **Stop mic**, then **Download log**. The JSON has the device, mic, settings, and per segment: time, SNR, room floor, `sent_to_asr`/gap reason, and what Whisper heard. A missing phrase marked as a gap is a capture problem (P2); marked `sent_to_asr` with wrong text, it is recognition (P1).
 - **Testing the mic alone:** `python3 -m http.server 8000`, open `http://localhost:8000/web/capture-check.html`. Tests: `node --test web/*.test.mjs`.
 
 ## Measured results
@@ -64,14 +68,15 @@ All numbers from P2's real recordings. ASR numbers were run in Python (PyTorch, 
 | Sweep 10 dB | 8 / 13 | rest are gaps — ASR is ~100% wrong at this level |
 | Sweep 5 dB / 0 dB | 0 / 13 | |
 
-**End-to-end (gate segments → ASR, whole transcript)**
+**End-to-end (gate segments → ASR, whole transcript, current settings)**
 
-| Audio | whisper-base | whisper-small-fsc (Filipino) |
-| --- | --- | --- |
-| Clean take | 57% WER / 18% CER | 39% / 16%* |
-| Real noisy take | 58% / 21% | 46% / 16%* |
+| Audio | whisper-tiny | whisper-base | whisper-small-fsc (Filipino) |
+| --- | --- | --- | --- |
+| Clean take | 81% / 29% CER | **48% / 15%** | 39% / 16%* |
+| Real noisy take | 83% / 35% | **54% / 20%** | 46% / 16%* |
 
-\* Filipino model measured with the earlier 0.5 s-only pause setting.
+Handing pause audio to the next piece (no audio lost between pieces) took whisper-base on the clean take from 57% to 48%.
+\* Filipino model measured with the earlier pause setting.
 
 **Word error rate by model** (per human-labelled line)
 
@@ -89,6 +94,26 @@ Hallucination loops on the clean take: tiny 2, base 0 (1 with hotwords), fsc 0. 
 
 **What this means:** below ~10 dB every model is effectively wrong, so gating that audio into gaps is the honest output. whisper-base beats tiny everywhere; the Filipino fine-tune roughly halves the error but is ~6× larger.
 
+## Robustness (stress-tested)
+
+All in `node --test web/*.test.mjs` unless marked *measured*.
+
+| Case | Result |
+| --- | --- |
+| Phone / Firefox mic at 48 or 44.1 kHz (JS resampling) | *measured:* same accuracy as native 16 kHz (whisper-base 48–49% vs 48%) |
+| Firefox rejects a 16 kHz context for the mic | falls back to the device rate + resampler (was: mic failed to start) |
+| Browser rejects the 16 kHz option | starts at device rate |
+| iPhone Safari starts audio suspended | context resumed (was: silent capture) |
+| Mic cannot start at all | `start()` rejects and the mic light turns off |
+| Whisper throws on a piece | piece shown as a `low_confidence` gap, later pieces continue (was: silently dropped) |
+| P1's new output (timed words, `conf: null`, `raw`) | passes through unchanged, order kept |
+| Browser chunk size 128 / 441 / 2048 / 4096 / 7919 samples | identical segments |
+| 30-minute lesson | far faster than real time; buffers bounded |
+| Shouting (clipped audio) | 13/13 lines still captured |
+| 60 s digital silence / steady hum | nothing reaches ASR |
+| Teacher farther away, quiet room (−6 to −18 dB voice) | *measured:* 13/13 lines at every distance (SNR 21–37 dB) |
+| Noise-only recording | 0 pieces reach ASR (browser and tests) |
+
 ## Open decisions
 
 1. **Model** (P1's call): fsc on laptop + base as phone fallback, if the ONNX conversion fits the time left; otherwise base.
@@ -104,9 +129,9 @@ Hallucination loops on the clean take: tiny 2, base 0 (1 with hotwords), fsc 0. 
 | Item | Value |
 | --- | --- |
 | Recordings | `lesson-clean`, `lesson-noisy`, `noise-only` — recorded Oct 9, 2026 by P2 for this hackathon |
-| Speaker | **TO CONFIRM** (team member P2; no students) |
-| Location / device | **TO CONFIRM** |
-| Background in noisy take | electric fan + classroom-ambience audio played from another device — **confirm source/licence** |
+| Speaker | Cristina(team member P2; no students) |
+| Location / device | Phone |
+| Background in noisy take | electric fan + classroom-ambience audio played from another device — https://www.youtube.com/watch?v=FzL65bmD1Nw|
 | Labels and transcripts | hand-checked by P2 in Audacity |
 | Sweep files | generated from the recordings by `lessons/sweep/make_sweep.py` |
 | Tools | Audacity, ffmpeg; Claude Code (AI-assisted code, analysis and docs) |

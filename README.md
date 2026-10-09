@@ -16,19 +16,26 @@ P1–P4 integration; see [evaluation status](eval/RESULTS.md).
 
 ## Current build status
 
-The P3 browser shell, captions, study-sheet renderer, and service worker are in
-the repo. P4's fixture adapter, audio-quality gate, Taglish annotations,
-vocabulary, deterministic summary, local session store, and offline text
-metrics are implemented on the P4 branch. P1's ASR engine and P2's lesson
-fixtures, gold transcript, and measured thresholds have not yet been merged
-into this checkout. The real lesson flow and airplane-mode behavior are **not
-yet verified**.
+The P1–P4 modules are merged in this checkout: P1's in-browser recognizer,
+P2's capture, noise measurement, recordings, gold transcript, and measured
+thresholds, P3's captions, study sheet, and service worker, and P4's
+audio-quality gate, Taglish annotations, vocabulary, summary, session store,
+and evaluation tools. `node --test` passes.
 
-P1 reports text and timestamps without decoder word-confidence scores. The
-P4 fallback labels accepted text **unverified** and replaces segments that
-fail measured audio-quality checks with gaps. Gate-pass coverage is not a
-probability that displayed words are correct. P3's UI copy and integration
-still need to reflect this decision before the demo.
+The live segment contract is settled. A successful decode becomes timed words
+with `conf: null`; only a failed decode, a repetition loop, rejected audio, or
+unusable timestamps become a gap. Accepted captions are therefore
+**unverified** — the engine exposes text and timestamps, never decoder
+word-confidence scores — and gate-pass coverage is the share of marked
+transcript time that passed audio-quality checks, not a probability that the
+words are correct.
+
+What is **not** yet verified is the behavior on the demo devices: the live
+microphone path, offline reload, phone performance, and session recovery and
+deletion in the UI have not been measured on a real phone or laptop. See
+[evaluation status](eval/RESULTS.md). The only committed accuracy number is a
+recorded-audio baseline (65.5% WER / 23.8% CER on 113 reference words), which
+is a different claim from the live path.
 
 ## Run locally
 
@@ -39,10 +46,11 @@ From the repository root, run:
 python -m http.server 8000
 ```
 
-Open `http://localhost:8000/web/index.html?fixture=1`. Once P2's JSON files
-exist, `?fixture=noisy` and `?fixture=taglish` select those takes. Fixture mode
-replays authored test data and does not measure ASR accuracy. A real-model run
-requires P1's engine and P3's final wiring.
+Open `http://localhost:8000/web/index.html?fixture=1`. `?fixture=noisy` and
+`?fixture=taglish` select P2's recorded takes. Fixture mode replays authored
+test data and does not measure ASR accuracy. Drop the `?fixture=` parameter for
+live mode: it asks for microphone permission, downloads the model on first use,
+and decodes the microphone through P1's engine.
 
 For an offline check, first load the deployed app and all needed model/fixture
 assets online on the **same device and origin**, then disconnect networking and
@@ -58,6 +66,9 @@ cold offline fixture path works until this is tested on the chosen host.
 | P2 | Audio recordings, capture, noise measurement, fixtures, gold transcript | `web/capture.js`, `web/noise.js`, `lessons/` |
 | P3 | Caption UI, study sheet, service worker, integration | `web/index.html`, `web/captions.js`, `web/sheet.js`, `web/sw.js`, `web/styles.css` |
 | P4 | Fixture selection, audio-quality gate, Taglish annotations, vocabulary, summary, storage, evaluation, disclosures | `web/fixture.js`, `web/engine-select.js`, `web/confidence.js`, `web/taglish.js`, `web/vocab.js`, `web/summary.js`, `web/store.js`, `eval/`, this README, `DISCLOSURES.md` |
+
+P4 also owns `mergeWordsAndGaps` in `web/captions.js`, exported from P3's file
+so the word/gap ordering can be checked without a DOM.
 
 Shared browser data shapes are in `contracts.ts`. Browser modules are plain
 JavaScript; TypeScript types appear only in JSDoc comments.
@@ -78,10 +89,10 @@ At class start, call `store.beginSession(session)`. At class end, fill
 
 The UI must call retained text **unverified**. The printed coverage percentage
 is the share of marked transcript time that passed audio-quality checks, not
-model confidence or word accuracy. P3 should update `web/sheet.js` and
-`web/index.html` copy accordingly, fix the missing `id="stage"` used by the
-end-class handler, and verify the service-worker scope and cache version once
-P2's fixture files are added. These are P3-owned files; P4 does not edit them.
+model confidence or word accuracy. P3 should keep `web/sheet.js` and
+`web/index.html` copy aligned with that wording and verify the service-worker
+scope and cache version on the deployed host. These are P3-owned files; P4 does
+not edit them beyond the exported ordering helper above.
 
 ## Post-class output and privacy
 
@@ -91,10 +102,9 @@ show the full transcript so each excerpt can be checked. Vocabulary comes
 only from displayed words; uncertain gap alternatives are excluded.
 
 P4's `web/store.js` saves text segments incrementally in device-local
-IndexedDB and exposes retrieval and permanent-deletion functions. P3 still
-needs to connect session start, finalization, recovery, and the delete control
-in the UI. Sessions do not sync between devices. The final privacy and network
-behavior must be checked on the deployed build before submission.
+IndexedDB and exposes retrieval and permanent-deletion functions. Sessions do
+not sync between devices. Recovery and the one-tap delete control must be
+verified in the UI on the final build before submission.
 
 ## Evaluation
 
@@ -104,18 +114,33 @@ Run the local P4 checks with:
 node --test
 ```
 
-When P2's human transcript and P1's raw output arrive, run:
+`eval/live-words.test.mjs` is the cross-module contract check: it takes a real
+segment from P1's engine and runs it through the gate, Taglish labels,
+vocabulary, summary, coverage, and caption ordering, asserting that accepted
+words stay `conf: null`, that words never overlap a gap, and that a gap guess
+never becomes a displayed word or a study term.
+
+For a single gold/hypothesis file pair:
 
 ```sh
 node eval/wer.mjs lessons/gold/lesson-clean.transcript.txt path/to/raw-asr.txt clean-taglish
 ```
 
-The command reports word and character error rates. It ignores case and
-punctuation, preserves the words and code-switching, and reports an undefined
-rate when the reference contains no words. Record actual device, SNR, and
-language-subset measurements in [eval/RESULTS.md](eval/RESULTS.md).
-The same evaluation folder contains `eval/snr-sweep.mjs` for reviewing
-candidate noise thresholds once human-labeled clean/noisy cases exist.
+For a whole gated live run — raw WER/CER overall and per human-labeled
+TL/EN/MIX slice, displayed coverage and gap rate, no-speech hallucinations,
+latency, and per-lane failure attribution — fill in a manifest from
+`eval/runs/run-manifest.template.json` and run:
+
+```sh
+node eval/score-run.mjs eval/runs/<condition>-<device>.json --targets eval/targets.json
+```
+
+`score-run.mjs` refuses to score a `fixture` run, reports an unlabeled slice
+as `no human reference` instead of a number, and treats a target with no
+measurement as `not measured` rather than a pass. The same folder contains
+`eval/snr-sweep.mjs` for reviewing candidate noise thresholds once human-labeled
+clean/noisy cases exist. Record actual device, SNR, and language-subset
+measurements in [eval/RESULTS.md](eval/RESULTS.md).
 
 ## Limitations and disclosures
 
