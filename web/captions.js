@@ -215,7 +215,8 @@ export class CaptionRenderer {
       this.root.innerHTML =
         '<p class="seg" data-empty="true">' +
         '<span class="seg-meta">Captions will appear here as the lesson is heard. ' +
-        'Anything not heard clearly is shown as a marked gap, not guessed at.</span></p>';
+        'Anything not heard clearly is shown as a marked gap, not guessed at. ' +
+        'Shown words passed a noise check and were not checked for accuracy.</span></p>';
       this.emitPacing();
       return;
     }
@@ -232,6 +233,7 @@ export class CaptionRenderer {
         if (seg.engine && seg.engine !== 'fixture') bits.push(esc(seg.engine));
         if (seg.latencyMs) bits.push(`${seg.latencyMs} ms`);
         bits.push(`SNR ${Number(seg.snrDb).toFixed(1)} dB`);
+        if (seg.words.length && seg.words.every((w) => w.conf === null)) bits.push('unverified');
         if (flagged.has(seg.start)) bits.push('flagged');
 
         return (

@@ -274,6 +274,8 @@ body {
   min-height: 0;
 }
 
+.stage[hidden] { display: none; }
+
 .captions {
   flex: 1 1 auto;
   overflow-y: auto;

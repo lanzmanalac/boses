@@ -67,6 +67,8 @@
     <button class="btn" id="flag-btn">I missed this</button>
     <button class="btn" id="start-btn">Start lesson</button>
     <button class="btn" id="end-btn" disabled>End class → sheet</button>
+    <button class="btn" id="open-saved-btn">Open saved lesson</button>
+    <button class="btn" id="delete-saved-btn">Delete saved lessons</button>
     <span class="spacer"></span>
     <span class="status" id="status" role="status" aria-live="polite"></span>
   </footer>
@@ -83,6 +85,7 @@
 import { CaptionRenderer, Presentation, SignalQualityHUD, TYPE_MIN, TYPE_MAX }
   from './captions.js';
 import { StudySheet, deriveCoverage } from './sheet.js';
+import { DEFAULTS } from './noise.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg; };
@@ -163,6 +166,25 @@ function persistFlags(flags) {
   try { store?.saveFlags?.(session.id, flags); } catch { /* non-fatal */ }
 }
 
+function asGap(seg) {
+  return {
+    ...seg,
+    words: [],
+    gaps: [{ start: seg.start, end: seg.end, reason: { kind: 'low_confidence' } }],
+  };
+}
+
+function coverageOf(segments) {
+  return confidence?.deriveCoverage
+    ? confidence.deriveCoverage(segments)
+    : deriveCoverage(segments);
+}
+
+function setSavedLessonButtonsHidden(hidden) {
+  $('open-saved-btn').hidden = hidden;
+  $('delete-saved-btn').hidden = hidden;
+}
+
 // ── engine ──────────────────────────────────────────────────────────────────
 // engine-select.js is P4's. If it is absent, fixture mode is unavailable and
 // we say so plainly instead of showing a blank screen.
@@ -178,10 +200,9 @@ const wantsFixture = params.has('fixture');
 let engineIsLive = false;   // true only when a real mic feeds a real model
 let stopWhenEnded = null;   // releases the live stream when End class is pressed
 
-// P2 owns this number. 12 dB is their measured default (speech 18-38 dB,
-// classroom babble 7-11 dB). Overridable for a noisier room:
+// P2 owns this number. Overridable for a noisier room:
 //   ?snr=10  or  localStorage 'boses.snrThresholdDb'
-let gateSnrThresholdDb = 12;
+let gateSnrThresholdDb = DEFAULTS.snrThresholdDb;
 try {
   const q = new URLSearchParams(location.search).get('snr');
   if (q && Number.isFinite(Number(q))) gateSnrThresholdDb = Number(q);
@@ -221,6 +242,18 @@ if (wantsFixture) {
     hud.render({ online: navigator.onLine, capturing: false,
                  note: `Live path unavailable: ${err.message}` });
   }
+}
+
+if (store?.listSessions) {
+  try {
+    const listed = await store.listSessions();
+    if (listed[0] && listed[0].endedAt == null) {
+      const prev = $('status').textContent;
+      status(prev
+        ? `${prev} An unfinished lesson is saved.`
+        : 'An unfinished lesson is saved.');
+    }
+  } catch { /* listing is optional at boot */ }
 }
 
 // ── controls ────────────────────────────────────────────────────────────────
@@ -271,61 +304,64 @@ $('start-btn').addEventListener('click', async () => {
   $('end-btn').disabled = false;
   $('start-btn').disabled = true;
   capturing = true;
+  setSavedLessonButtonsHidden(true);
+  $('sheet-view').hidden = true;
+  $('stage').hidden = false;
   hud.render({ online: navigator.onLine, capturing: true, engine: engine?.id ?? 'fixture' });
 
-  // Open the persisted session BEFORE the first segment, so checkpointing
-  // works from the very first utterance.
-  try { store?.beginSession?.({ id: session.id, startedAt: session.startedAt, title: session.title }); }
-  catch (err) { console.warn('session not opened in store', err); }
+  try {
+    if (store?.beginSession) {
+      await store.beginSession({ id: session.id, startedAt: session.startedAt, title: session.title });
+    }
+  } catch (err) { console.warn('session not opened in store', err); }
 
-  // One path for both modes: consume { onSegment } and render. The only
-  // difference is where segments come from.
-  // P4 owns gateSegment(); P2 owns the thresholds. The gate runs AFTER the
-  // recognizer returns and BEFORE anything else sees the segment, so the
-  // screen, the store and the study sheet all see the same gated result.
-  // One gate, one answer — never let the view invent its own uncertainty.
   const gateOptions = {
-    snrThresholdDb: gateSnrThresholdDb,   // P2's measured value
-    minDurationSec: 0.3,
+    snrThresholdDb: gateSnrThresholdDb,
+    minDurationSec: DEFAULTS.minSpeechSec,
     supportsWordConfidence: engine?.supportsWordConfidence === true,
-    repetitionDetected: false,            // P2 flags it on the segment itself
+    repetitionDetected: false,
     wordConfidenceThreshold: 0.55,
   };
 
   const gateSegment = (seg) => {
-    if (!confidence?.gateSegment) return seg;
+    if (!confidence?.gateSegment) {
+      status('The caption check failed, so this segment is shown as a gap.');
+      return asGap(seg);
+    }
+    let gated;
     try {
-      const gated = confidence.gateSegment(seg, {
+      gated = confidence.gateSegment(seg, {
         ...gateOptions,
         repetitionDetected: seg.repetitionDetected === true,
       });
-      // Taglish labels annotate recognized words. They never rewrite text —
-      // a Taglish sentence the teacher spoke stays Taglish.
-      if (taglish?.tagSegment && gated.words?.length) {
-        gated.taglish = taglish.tagSegment(gated, { tlTerms: [], enTerms: [] });
-      }
-      return gated;
     } catch (err) {
-      // A gate that throws must not silently drop the segment. Show it as-is
-      // rather than pretending it was verified.
-      console.warn('[boses] gateSegment failed, showing ungated segment', err);
-      return seg;
+      console.warn('[boses] gateSegment failed, showing a gap', err);
+      status('The caption check failed, so this segment is shown as a gap.');
+      return asGap(seg);
     }
+    if (taglish?.tagSegment && gated.words?.length) {
+      try {
+        gated.taglish = taglish.tagSegment(gated, { tlTerms: [], enTerms: [] });
+      } catch (err) {
+        console.warn('[boses] Taglish tagging failed; keeping gated captions', err);
+      }
+    }
+    return gated;
+  };
+
+  const acceptSegment = (raw) => {
+    const seg = gateSegment(raw);
+    session.segments.push(seg);
+    captions.appendSegment(seg);
+    Promise.resolve(store?.appendSegment?.(session.id, seg)).catch(() => {});
+    hud.render({
+      online: navigator.onLine, capturing, engine: engine?.id ?? 'fixture',
+      snrDb: seg.snrDb, latencyMs: seg.latencyMs,
+    });
   };
 
   const consume = (bridgeLike) => new Promise((resolve) => {
-    bridgeLike.onSegment((raw) => {
-      const seg = gateSegment(raw);
-      session.segments.push(seg);
-      captions.appendSegment(seg);
-      // Checkpoint on arrival, not at the end — a phone that dies at minute
-      // 18 of 20 must not lose the lesson. P4's store owns the write.
-      Promise.resolve(store?.appendSegment?.(session.id, seg)).catch(() => {});
-      hud.render({
-        online: navigator.onLine, capturing, engine: engine?.id ?? 'fixture',
-        snrDb: seg.snrDb, latencyMs: seg.latencyMs,
-      });
-    });
+    bridgeLike.onSegment(acceptSegment);
     resolve();
   });
 
@@ -333,24 +369,22 @@ $('start-btn').addEventListener('click', async () => {
     if (wantsFixture) {
       status('Playing recorded segments. This is not live capture.');
       hud.render({ online: navigator.onLine, capturing: false, engine: engine?.id ?? 'fixture' });
-      await consume(await streamSegments(engine));   // resolves when the fixture is exhausted
+      for await (const raw of streamSegments(engine)) acceptSegment(raw);
       status('Recorded lesson finished. End class to produce the sheet.');
     } else {
-      // Live: microphone -> noise gate -> decoder -> captions.
       status('Requesting microphone…');
-      mic = new captureModule.MicCapture();
-      await mic.start();                 // rejects if permission is denied
+      mic = new captureModule.MicCapture({
+        snrThresholdDb: gateSnrThresholdDb,
+        minSpeechSec: DEFAULTS.minSpeechSec,
+      });
+      await mic.start();
       engineIsLive = true;
 
-      // P2's bridge gates on SNR before the decoder ever runs. That is the
-      // behaviour that keeps the gap promise honest in a loud room. Hotwords
-      // go to the DECODER only — the UI never substitutes a term the speaker
-      // did not actually say.
       bridge = captureModule.connectCapture(mic, engine, {
         hotwords,
         snrThresholdDb: gateSnrThresholdDb,
       });
-      status(`Listening. Keep this screen on.${hotwords.length ? ` Hotwords: ${hotwords.length}.` : ''}`);
+      status(`Listening. Keep this screen on. ${gateSnrThresholdDb} dB.${hotwords.length ? ` Hotwords: ${hotwords.length}.` : ''}`);
       hud.render({ online: navigator.onLine, capturing: true, engine: engine.id,
                    ...mic.signalQuality() });
 
@@ -370,6 +404,7 @@ $('start-btn').addEventListener('click', async () => {
     console.warn('capture stream ended', err);
     capturing = false;
     engineIsLive = false;
+    setSavedLessonButtonsHidden(false);
     const denied = /permission|denied|NotAllowed/i.test(err?.message ?? '');
     status(denied
       ? 'Microphone permission denied. Allow it in the browser, or add ?fixture=1 to play recorded segments.'
@@ -383,66 +418,134 @@ $('start-btn').addEventListener('click', async () => {
   }
 });
 
-$('end-btn').addEventListener('click', () => {
+$('end-btn').addEventListener('click', async () => {
+  $('end-btn').disabled = true;
   capturing = false;
   engineIsLive = false;
-  stopWhenEnded?.();                    // release the live stream's await
+  setSavedLessonButtonsHidden(false);
+  stopWhenEnded?.();
   stopWhenEnded = null;
-  mic?.stop().catch(() => {});          // release the microphone now, not at end of class
+  await mic?.stop().catch(() => {});
   mic = null;
   session.segments = captions.getSegments();
   session.flags = captions.getFlags();
 
-  // Persist the finished session. P4 owns the schema; a failure here must not
-  // lose the sheet the student is looking on.
+  try { session.vocab = vocabMod?.extractVocab?.(session) ?? []; }
+  catch (err) { console.warn('vocab extraction failed', err); session.vocab = []; }
+
+  try { session.summaryLines = summaryMod?.buildSummary?.(session) ?? []; }
+  catch (err) { console.warn('summary build failed', err); session.summaryLines = []; }
+
+  const coverage = coverageOf(session.segments);
+  session.endedAt = Date.now();
+
+  let saveError = null;
   try {
-    store?.finalizeSession?.({ ...session, coverage: deriveCoverage(session.segments) });
-  } catch (err) { console.warn('session not persisted', err); }
+    if (store?.finalizeSession) {
+      await store.finalizeSession({ ...session, coverage, endedAt: session.endedAt });
+    }
+  } catch (err) {
+    console.warn('session not persisted', err);
+    saveError = err;
+  }
 
-  // Post-class pass. P4 owns these functions; P3 only supplies the session and
-  // renders what comes back. Nothing here is invented in the UI layer.
-  const finished = {
-    ...session,
-    segments: session.segments,
-    flags: session.flags,
-  };
-
-  try { finished.vocab = vocabMod?.extractVocab?.(finished) ?? []; }
-  catch (err) { console.warn('vocab extraction failed', err); finished.vocab = []; }
-
-  let summaryLines = [];
-  try { summaryLines = summaryMod?.buildSummary?.(finished) ?? []; }
-  catch (err) { console.warn('summary build failed', err); }
-
-  const coverage = confidence?.deriveCoverage
-    ? confidence.deriveCoverage(session.segments)   // P4's: audio-gated coverage
-    : deriveCoverage(session.segments);
-
-  // ADR-0002 is still open: P1's engine exposes no per-word confidence, so a
-  // gap here means "not reliably captured", NOT "the model was unsure". Say
-  // which one on the page, using P4's own wording.
   const unverified = engine?.supportsWordConfidence !== true;
-
   sheet.render({
-    session: { ...finished, summaryLines },
+    session: { ...session, summaryLines: session.summaryLines },
     coverage,
-    summaryLines,
+    summaryLines: session.summaryLines,
     llmDraft: session.llmDraft,
     confidenceSource: unverified
       ? (confidence?.UNVERIFIED_LABEL
           ?? 'segment-level reliability (decoder confidence unavailable)')
       : 'per-token decoder confidence',
-    // Lets the sheet print an explicit unverified banner when confidence is
-    // unavailable. Harmless if sheet.js ignores it.
     unverified,
   });
 
   $('stage').hidden = true;
   $('sheet-view').hidden = false;
-  $('sheet-status').textContent =
-    `${Math.round(coverage.coverageRatio * 100)}% coverage · ${session.flags.length} flagged`;
+  $('sheet-status').textContent = saveError
+    ? `Save failed: ${saveError?.message ?? saveError}`
+    : `${Math.round(coverage.coverageRatio * 100)}% passed the audio check · ${session.flags.length} flagged`;
   hud.render({ online: navigator.onLine, capturing: false, engine: engine?.id ?? 'fixture' });
   window.scrollTo(0, 0);
+});
+
+function finishSaved(saved) {
+  let vocab = Array.isArray(saved.vocab) ? saved.vocab : [];
+  if (vocab.length === 0) {
+    try { vocab = vocabMod?.extractVocab?.(saved) ?? []; }
+    catch (err) { console.warn('vocab extraction failed', err); vocab = []; }
+  }
+  let summaryLines = Array.isArray(saved.summaryLines) ? saved.summaryLines : [];
+  if (summaryLines.length === 0) {
+    try { summaryLines = summaryMod?.buildSummary?.({ ...saved, vocab }) ?? []; }
+    catch (err) { console.warn('summary build failed', err); summaryLines = []; }
+  }
+  const coverage = saved.coverage ?? coverageOf(saved.segments ?? []);
+  return { vocab, summaryLines, coverage };
+}
+
+function showSheet(saved, coverage, summaryLines, statusText) {
+  const unverified = engine?.supportsWordConfidence !== true;
+  sheet.render({
+    session: { ...saved, summaryLines },
+    coverage,
+    summaryLines,
+    llmDraft: saved.llmDraft,
+    confidenceSource: unverified
+      ? (confidence?.UNVERIFIED_LABEL
+          ?? 'segment-level reliability (decoder confidence unavailable)')
+      : 'per-token decoder confidence',
+    unverified,
+  });
+  $('stage').hidden = true;
+  $('sheet-view').hidden = false;
+  $('sheet-status').textContent = statusText;
+  window.scrollTo(0, 0);
+}
+
+$('open-saved-btn').addEventListener('click', async () => {
+  if (capturing) return;
+  if (!store?.listSessions || !store?.getSession) {
+    status('Local storage is not available.');
+    return;
+  }
+  try {
+    const listed = await store.listSessions();
+    if (!listed.length) {
+      status('No saved lesson.');
+      return;
+    }
+    const saved = await store.getSession(listed[0].id);
+    if (!saved) {
+      status('No saved lesson.');
+      return;
+    }
+    const { vocab, summaryLines, coverage } = finishSaved(saved);
+    showSheet(
+      { ...saved, vocab, summaryLines },
+      coverage,
+      summaryLines,
+      `${Math.round(coverage.coverageRatio * 100)}% passed the audio check · ${(saved.flags ?? []).length} flagged`,
+    );
+  } catch (err) {
+    status(`Could not open the saved lesson: ${err?.message ?? err}`);
+  }
+});
+
+$('delete-saved-btn').addEventListener('click', async () => {
+  if (capturing) return;
+  if (!store?.deleteAllSessions) {
+    status('Local storage is not available.');
+    return;
+  }
+  try {
+    await store.deleteAllSessions();
+    status('Saved lessons are gone.');
+  } catch (err) {
+    status(`Could not delete saved lessons: ${err?.message ?? err}`);
+  }
 });
 
 $('print-btn').addEventListener('click', () => sheet.print());
