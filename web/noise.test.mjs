@@ -106,3 +106,23 @@ test('connectCapture: gated segments skip the engine, others are decoded in orde
   assert.equal(out[1].id, 'd2');
   assert.deepEqual(gapSegment({ pcm, startSec: 0, endSec: 0.2, snrDb: 3, reason: 'too_short' }, 'fixture', 'x').words, []);
 });
+
+test('long speech is cut at a quiet dip near the limit, not mid-word', () => {
+  const sr = SAMPLE_RATE;
+  const pcm = new Float32Array(22 * sr);
+  for (let i = 0; i < pcm.length; i++) {
+    const t = i / sr;
+    const speaking = t >= 1 && t < 21 && !(t >= 11.2 && t < 11.4); // 200 ms dip: shorter than a real pause
+    const syllables = 0.5 + 0.5 * Math.sin(2 * Math.PI * 4 * t);  // 4 Hz modulation, like speech
+    pcm[i] = (speaking ? 0.3 * syllables : 0.001) * Math.sin(2 * Math.PI * 300 * t);
+  }
+  const s = new Segmenter();
+  const out = [];
+  s.onSegment((seg) => out.push(seg));
+  for (let i = 0; i < pcm.length; i += 2048) s.push(pcm.subarray(i, i + 2048));
+  s.flush();
+  const first = out[0];
+  assert.ok(first.endSec - first.startSec <= 12.3, 'force-cut at the 12 s limit');
+  assert.ok(Math.abs(first.endSec - 11.3) < 0.4, `cut at ${first.endSec}s, expected the dip at ~11.3 s`);
+  assert.ok(Math.abs(out[1].startSec - first.endSec) < 0.05, 'remainder continues without losing audio');
+});

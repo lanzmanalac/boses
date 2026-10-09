@@ -9,6 +9,7 @@
   @media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#eee; --muted:#999; --line:#333; } }
   body { font: 16px/1.4 system-ui, sans-serif; margin: 0 auto; padding: 16px; max-width: 720px; background: var(--bg); color: var(--fg); }
   button, select { font: inherit; padding: 8px 12px; margin: 4px 4px 4px 0; min-height: 44px; }
+  td:last-child { white-space: normal; }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
   td, th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
   .DECODE { color: var(--ok); } .too_short { color: var(--warn); } .snr_below_threshold { color: var(--bad); }
@@ -26,9 +27,10 @@
   </select>
   <button id="replay">Replay file through guards</button>
   <button id="mic">Start mic</button>
+  <label><input type="checkbox" id="asr"> Show what Whisper hears (loads P1's model; first time needs internet)</label>
 </div>
 <p id="quality"></p>
-<table><thead><tr><th>start</th><th>end</th><th>SNR dB</th><th>result</th></tr></thead><tbody id="rows"></tbody></table>
+<table><thead><tr><th>start</th><th>end</th><th>SNR dB</th><th>result</th><th>Whisper heard</th></tr></thead><tbody id="rows"></tbody></table>
 
 <script type="module">
 import { Segmenter, SAMPLE_RATE } from './noise.js';
@@ -36,10 +38,40 @@ import { MicCapture } from './capture.js';
 
 const $ = (id) => document.getElementById(id);
 const rows = $('rows');
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// Optional ASR: P1's real engine, one segment at a time, in order.
+let engine = null, queue = Promise.resolve(), hotwords = [];
+async function getEngine() {
+  if (engine) return engine;
+  $('status').textContent = 'Loading Whisper…';
+  const { WhisperEngine } = await import('./asr.js');
+  engine = new WhisperEngine();
+  await engine.init((p) => { $('status').textContent = `Loading Whisper… ${Math.round(p * 100)}%`; });
+  hotwords = await fetch('../lessons/hotwords/lesson.txt').then((r) => (r.ok ? r.text() : '')).catch(() => '')
+    .then((t) => t.split('\n').map((x) => x.trim()).filter(Boolean));
+  $('status').textContent = `Whisper ready (${engine.id}).`;
+  return engine;
+}
+// P1's engine returns no word confidence, so heard text arrives as gap alternatives.
+const heardText = (seg) => (seg.words ?? []).map((w) => w.text).join(' ') ||
+  (seg.gaps ?? []).flatMap((g) => g.reason?.alternatives ?? []).join(' ') ||
+  `(${(seg.gaps ?? []).map((g) => g.reason?.kind).join(', ') || 'nothing'})`;
+
 const show = (seg) => {
   const r = seg.reason ?? 'DECODE';
   rows.insertAdjacentHTML('beforeend',
-    `<tr class="${r}"><td>${seg.startSec.toFixed(2)}</td><td>${seg.endSec.toFixed(2)}</td><td>${seg.snrDb}</td><td>${r}</td></tr>`);
+    `<tr class="${r}"><td>${seg.startSec.toFixed(2)}</td><td>${seg.endSec.toFixed(2)}</td><td>${seg.snrDb}</td><td>${r}</td><td></td></tr>`);
+  const cell = rows.lastElementChild.lastElementChild;
+  if (seg.reason) { cell.textContent = '— gap, Whisper never ran'; return; }
+  if (!$('asr').checked) return;
+  cell.textContent = '…';
+  queue = queue.then(async () => {
+    const e = await getEngine();
+    const t0 = performance.now();
+    const out = await e.transcribe(seg.pcm, { startSec: seg.startSec, hotwords, snrDb: seg.snrDb, snrThresholdDb: 0 });
+    cell.innerHTML = `${esc(heardText(out))} <small>(${Math.round(performance.now() - t0)} ms)</small>`;
+  }).catch((err) => { cell.textContent = `ASR failed: ${err.message}`; });
 };
 const summary = () => {
   const all = rows.children.length, dec = rows.querySelectorAll('.DECODE').length;

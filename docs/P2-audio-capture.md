@@ -35,7 +35,8 @@ Gate checks, cheapest first: **too short** (< 0.3 s → `too_short`), **too quie
 | --- | --- | --- |
 | SNR gate | **16 dB** | All 13 lines of both real takes pass. The 10 dB sweep — where every model is ~100% wrong — drops from 10/13 lines passing (at 12 dB) to 3/13. Noise-only babble measures 7–11 dB. |
 | Minimum duration | **0.3 s** | Coughs/taps in the noise-only clip and noisy take are 0.2–0.6 s; no real line is shorter. |
-| Pause that ends an utterance | **0.5 s** | 0.35 s cut lines at commas into fragments. 0.5 s keeps whole lines: whisper-base WER 62% → 46% (clean), 75% → 58% (noisy); Filipino model unchanged. Pieces average 6–7 s, max 12 s (force-cut). |
+| Pause that ends an utterance | **0.5 s**, counted when the level is 5 dB above the room **or 22 dB below the speaker's own peak** | 0.35 s cut lines at commas (whisper-base WER 62% vs 46% at 0.5 s). In a quiet room breath and echo kept pauses above the room floor, so pieces ran to the 12 s limit (seen live too). The 22 dB rule gives a caption every ~4–6 s; cost: clean WER 57% vs 47% with 12 s pieces, noisy unchanged (58%). |
+| Longest piece | **12 s**, cut at the quietest moment of the last 1.5 s | Avoids splitting a word when someone talks without pausing. |
 | Room calibration | first **1 s** after Start | Floor = 15th percentile of the last 5 s afterwards, so it follows the room. |
 
 All of these live in `DEFAULTS` in `web/noise.js`. Per-segment evidence for every recording: `lessons/GATE-REPORT.md` (`node lessons/tools/gate-report.mjs`).
