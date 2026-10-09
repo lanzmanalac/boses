@@ -59,10 +59,17 @@ $('asr').addEventListener('change', () => {
 });
 if ($('asr').checked) $('asr').dispatchEvent(new Event('change')); // box restored ticked after a reload
 
-// P1's engine returns no word confidence, so heard text arrives as gap alternatives.
-const heardText = (seg) => (seg.words ?? []).map((w) => w.text).join(' ') ||
-  (seg.gaps ?? []).flatMap((g) => g.reason?.alternatives ?? []).join(' ') ||
-  `(${(seg.gaps ?? []).map((g) => g.reason?.kind).join(', ') || 'nothing'})`;
+// A gap still stores the recognizer string on raw.text. Show it here so a
+// dropped line is visible on this page.
+const heardText = (seg) => {
+  const words = (seg.words ?? []).map((w) => w.text).join(' ').trim();
+  if (words) return words;
+  const alts = (seg.gaps ?? []).flatMap((g) => g.reason?.alternatives ?? []).join(' ').trim();
+  if (alts) return alts;
+  const kind = (seg.gaps ?? []).map((g) => g.reason?.kind).join(', ') || 'nothing';
+  const raw = String(seg.raw?.text ?? '').trim();
+  return raw ? `(${kind}) ${raw}` : `(${kind})`;
+};
 
 const show = (seg) => {
   const r = seg.reason ?? 'DECODE';

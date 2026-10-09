@@ -141,17 +141,65 @@ test('a chunk ending more than 0.25 s past the clip is a gap', async () => {
   await engine.dispose();
 });
 
-test('a chunk ending less than 0.25 s past the clip is clamped and kept', async () => {
+test('a timestamp that ends past the clip is not a word and is not clamped', async () => {
   harness.chunks = [{ text: 'mitokondria', timestamp: [0, 0.3] }];
   const engine = new WhisperEngine();
   const pcm = new Float32Array(1600);
   const seg = await engine.transcribe(pcm, { startSec: 1.5, snrDb: 12 });
   assert.equal(seg.end, 1.6);
-  assert.equal(seg.words.length, 1);
-  assert.equal(seg.words[0].text, 'mitokondria');
-  assert.equal(seg.words[0].conf, null);
-  assert.equal(seg.words[0].start, 1.5);
-  assert.equal(seg.words[0].end, 1.6);
+  assert.equal(seg.words.length, 0);
+  assert.equal(seg.gaps.length, 1);
+  assert.equal(seg.gaps[0].start, 1.5);
+  assert.equal(seg.gaps[0].end, 1.6);
+  assert.equal(seg.gaps[0].reason.kind, 'low_confidence');
+  assert.equal(seg.gaps[0].reason.alternatives, undefined);
+  await engine.dispose();
+});
+
+test('a 0.4 s chunk on a 0.1 s clip is one full-span gap and keeps recognizer text on raw', async () => {
+  harness.chunks = [{ text: 'mitokondria', timestamp: [0, 0.4] }];
+  const engine = new WhisperEngine();
+  const pcm = new Float32Array(1600);
+  const seg = await engine.transcribe(pcm, { startSec: 1.5, snrDb: 12 });
+  assert.equal(seg.words.length, 0);
+  assert.equal(seg.gaps.length, 1);
+  assert.equal(seg.gaps[0].start, 1.5);
+  assert.equal(seg.gaps[0].end, 1.6);
+  assert.equal(seg.gaps[0].reason.kind, 'low_confidence');
+  assert.equal(seg.gaps[0].reason.alternatives, undefined);
+  assert.equal(seg.raw.text, 'mitokondria sa selula');
+  await engine.dispose();
+});
+
+test('a kept word sits beside a gap for the overlapping remainder of a long chunk', async () => {
+  harness.chunks = [
+    { text: 'mitokondria', timestamp: [0, 0.4] },
+    { text: 'selula', timestamp: [0.4, 1.5] },
+  ];
+  const engine = new WhisperEngine();
+  const pcm = new Float32Array(16000);
+  const seg = await engine.transcribe(pcm, { startSec: 0, snrDb: 12 });
+  assert.deepEqual(seg.words, [
+    { text: 'mitokondria', start: 0, end: 0.4, conf: null },
+  ]);
+  assert.deepEqual(seg.gaps, [
+    { start: 0.4, end: 1, reason: { kind: 'low_confidence' } },
+  ]);
+  assert.equal(seg.gaps[0].reason.alternatives, undefined);
+  await engine.dispose();
+});
+
+test('a chunk fully outside the clip adds no gap beside a kept word', async () => {
+  harness.chunks = [
+    { text: 'mitokondria', timestamp: [0, 0.3] },
+    { text: 'selula', timestamp: [2, 2.2] },
+  ];
+  const engine = new WhisperEngine();
+  const pcm = new Float32Array(16000);
+  const seg = await engine.transcribe(pcm, { startSec: 0, snrDb: 12 });
+  assert.deepEqual(seg.words, [
+    { text: 'mitokondria', start: 0, end: 0.3, conf: null },
+  ]);
   assert.equal(seg.gaps.length, 0);
   await engine.dispose();
 });
