@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boses — capture check (P2)</title>
+<style>
+  :root { --bg:#fff; --fg:#111; --muted:#666; --ok:#1a7f37; --bad:#c62828; --warn:#b26a00; --line:#ddd; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#eee; --muted:#999; --line:#333; } }
+  body { font: 16px/1.4 system-ui, sans-serif; margin: 0 auto; padding: 16px; max-width: 720px; background: var(--bg); color: var(--fg); }
+  button, select { font: inherit; padding: 8px 12px; margin: 4px 4px 4px 0; min-height: 44px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td, th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .DECODE { color: var(--ok); } .too_short { color: var(--warn); } .snr_below_threshold { color: var(--bad); }
+  #status { color: var(--muted); min-height: 1.4em; }
+</style>
+</head>
+<body>
+<h1>Capture check</h1>
+<p id="status">Dev page for capture.js / noise.js. Not part of the product UI.</p>
+<div>
+  <select id="file">
+    <option value="lesson-clean">lesson-clean.wav</option>
+    <option value="lesson-noisy">lesson-noisy.wav</option>
+    <option value="noise-only">noise-only.wav</option>
+  </select>
+  <button id="replay">Replay file through guards</button>
+  <button id="mic">Start mic</button>
+</div>
+<p id="quality"></p>
+<table><thead><tr><th>start</th><th>end</th><th>SNR dB</th><th>result</th></tr></thead><tbody id="rows"></tbody></table>
+
+<script type="module">
+import { Segmenter, SAMPLE_RATE } from './noise.js';
+import { MicCapture } from './capture.js';
+
+const $ = (id) => document.getElementById(id);
+const rows = $('rows');
+const show = (seg) => {
+  const r = seg.reason ?? 'DECODE';
+  rows.insertAdjacentHTML('beforeend',
+    `<tr class="${r}"><td>${seg.startSec.toFixed(2)}</td><td>${seg.endSec.toFixed(2)}</td><td>${seg.snrDb}</td><td>${r}</td></tr>`);
+};
+const summary = () => {
+  const all = rows.children.length, dec = rows.querySelectorAll('.DECODE').length;
+  $('status').textContent = `${all} segments, ${dec} would reach the decoder.`;
+};
+
+$('replay').onclick = async () => {
+  rows.innerHTML = '';
+  const res = await fetch(`../lessons/sample/${$('file').value}.wav`);
+  const buf = await new AudioContext().decodeAudioData(await res.arrayBuffer());
+  const off = new OfflineAudioContext(1, Math.ceil(buf.duration * SAMPLE_RATE), SAMPLE_RATE);
+  const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start();
+  const pcm = (await off.startRendering()).getChannelData(0);
+  const seg = new Segmenter();
+  seg.onSegment(show);
+  for (let i = 0; i < pcm.length; i += 2048) seg.push(pcm.subarray(i, i + 2048));
+  seg.flush();
+  summary();
+  window.__lastReplay = { segments: rows.children.length, decoded: rows.querySelectorAll('.DECODE').length };
+};
+
+let cap = null, timer = 0;
+$('mic').onclick = async () => {
+  if (cap) {
+    await cap.stop(); cap = null; clearInterval(timer);
+    $('mic').textContent = 'Start mic'; summary(); return;
+  }
+  rows.innerHTML = '';
+  cap = new MicCapture();
+  cap.onSegment(show);
+  try { await cap.start(); } catch (e) { $('status').textContent = `Mic failed: ${e.message}`; cap = null; return; }
+  $('mic').textContent = 'Stop mic';
+  $('status').textContent = 'Stay quiet for 1 second while the room floor calibrates, then talk.';
+  timer = setInterval(() => {
+    const q = cap.signalQuality();
+    $('quality').textContent = `floor ${q.floorDb.toFixed(1)} dB · level ${q.levelDb.toFixed(1)} dB · ` +
+      (q.snrDb !== undefined ? `SNR ${q.snrDb.toFixed(1)} dB` : 'SNR —') + (q.speaking ? ' · speaking' : '');
+  }, 200);
+};
+</script>
+</body>
+</html>
