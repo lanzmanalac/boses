@@ -70,6 +70,24 @@ const mmss = (sec) => {
   return `${m}:${String(s).padStart(2, '0')}`;
 };
 
+/**
+ * Order one segment's words and gaps on a single timeline. Exported so the
+ * ordering can be checked without a DOM: a gap must never be rendered as if it
+ * were heard text, and position is the only thing that orders the two.
+ * @param {TranscriptSegment} seg
+ * @returns {({text: string} | {gap: Gap})[]}
+ */
+export function mergeWordsAndGaps(seg) {
+  const items = [
+    ...(seg?.words ?? []).map((w) => ({ at: w.start, text: w.text })),
+    ...(seg?.gaps ?? []).map((g) => ({ at: g.start, gap: g })),
+  ].sort((a, b) => a.at - b.at);
+  return items.map(({ at, ...rest }) => {
+    void at;
+    return rest;
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CaptionRenderer
 // ─────────────────────────────────────────────────────────────────────────────
@@ -328,14 +346,7 @@ this.userScrolledAway = false;
    * @param {TranscriptSegment} seg
    */
   mergedItems(seg) {
-    const items = [
-      ...seg.words.map((w) => ({ at: w.start, text: w.text })),
-      ...seg.gaps.map((g) => ({ at: g.start, gap: g })),
-    ].sort((a, b) => a.at - b.at);
-    return items.map(({ at, ...rest }) => {
-      void at;
-      return rest;
-    });
+    return mergeWordsAndGaps(seg);
   }
 
   /** @param {Gap} gap */
