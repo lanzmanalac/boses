@@ -61,9 +61,13 @@ $('asr').addEventListener('change', () => {
 if ($('asr').checked) $('asr').dispatchEvent(new Event('change')); // box restored ticked after a reload
 
 // P1's engine returns no word confidence, so heard text arrives as gap alternatives.
+// When P1 turns a decode into a gap (e.g. word timestamps it could not map),
+// the raw text is still on seg.raw: show it, marked, so capture vs. recognition
+// problems can be told apart.
 const heardText = (seg) => (seg.words ?? []).map((w) => w.text).join(' ') ||
   (seg.gaps ?? []).flatMap((g) => g.reason?.alternatives ?? []).join(' ') ||
-  `(${(seg.gaps ?? []).map((g) => g.reason?.kind).join(', ') || 'nothing'})`;
+  `(${(seg.gaps ?? []).map((g) => g.reason?.kind).join(', ') || 'nothing'}` +
+  (seg.raw?.text ? ` — Whisper did hear: "${seg.raw.text}", dropped by asr.js)` : ')');
 
 // Everything shown in the table, kept for 'Download log' (gate result + what Whisper heard).
 let entries = [], mode = '';

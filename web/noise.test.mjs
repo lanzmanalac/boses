@@ -160,3 +160,79 @@ test('MicCapture keeps a per-segment gate log for device tests', async () => {
   }
   assert.equal(log.settings.snrThresholdDb, 16);
 });
+
+// ── stress tests ────────────────────────────────────────────────────────────
+const run = (pcm, chunk = 2048, opts) => {
+  const s = new Segmenter(opts);
+  const out = [];
+  s.onSegment((seg) => out.push(seg));
+  for (let i = 0; i < pcm.length; i += chunk) s.push(pcm.subarray(i, i + chunk));
+  s.flush();
+  return { out, s };
+};
+const key = (segs) => segs.map((x) => `${x.startSec}-${x.endSec}-${x.snrDb}-${x.reason ?? 'asr'}`).join('|');
+const labelsOf = (name) => readFileSync(new URL(`../lessons/gold/${name}.labels.txt`, import.meta.url), 'utf8')
+  .trim().split('\n').map((l) => l.split('\t').map(Number));
+const covered = (segs, labels) => labels.filter(([a, b]) => segs.some((s) => !s.reason && s.startSec <= (a + b) / 2 && (a + b) / 2 <= s.endSec)).length;
+
+test('stress: results do not depend on how the browser chunks audio', () => {
+  const pcm = readWav(sample('lesson-noisy'));
+  const ref = key(run(pcm, 2048).out);
+  for (const chunk of [128, 441, 4096, 7919]) assert.equal(key(run(pcm, chunk).out), ref, `chunk ${chunk}`);
+});
+
+test('stress: 30-minute lesson runs far faster than real time with bounded memory', () => {
+  const sr = SAMPLE_RATE;
+  const pcm = new Float32Array(30 * 60 * sr);
+  for (let i = 0; i < pcm.length; i++) {
+    const t = i / sr;
+    const talking = (t % 7) < 5; // 5 s talk, 2 s pause
+    pcm[i] = (talking ? 0.2 * (0.5 + 0.5 * Math.sin(2 * Math.PI * 4 * t)) * Math.sin(2 * Math.PI * 300 * t) : 0) + 0.002 * Math.sin(2 * Math.PI * 97 * t);
+  }
+  const t0 = performance.now();
+  const { out, s } = run(pcm);
+  const sec = (performance.now() - t0) / 1000;
+  assert.ok(sec < 60, `30 min of audio took ${sec.toFixed(1)} s`);
+  assert.ok(s.history.length <= 5 * 50 && s.preRoll.length <= 10, 'buffers stay bounded');
+  assert.ok(out.length > 200 && out.every((x) => x.endSec - x.startSec <= 12.3));
+});
+
+test('stress: shouting into the mic (clipped audio) still captures every line', () => {
+  const pcm = readWav(sample('lesson-clean')).map((v) => Math.max(-1, Math.min(1, v * 12)));
+  assert.equal(covered(run(pcm).out, labelsOf('lesson-clean')), 13);
+});
+
+test('stress: 60 s of digital silence produces nothing', () => {
+  assert.equal(run(new Float32Array(60 * SAMPLE_RATE)).out.length, 0);
+});
+
+test('stress: steady hum (fan/aircon) never reaches ASR', () => {
+  const pcm = Float32Array.from({ length: 20 * SAMPLE_RATE }, (_, i) => (i > SAMPLE_RATE * 3 ? 0.3 : 0.002) * Math.sin(2 * Math.PI * 180 * i / SAMPLE_RATE));
+  assert.deepEqual(run(pcm).out.filter((x) => !x.reason), []);
+});
+
+test('P1 compatibility: timed unverified words pass through unchanged; engine errors become gaps', async () => {
+  const listeners = [];
+  const fakeCapture = { onSegment: (cb) => listeners.push(cb) };
+  let call = 0;
+  const engine = {
+    id: 'whisper-webgpu',
+    supportsWordConfidence: false,
+    transcribe: async (pcm, o) => {
+      if (++call === 2) throw new Error('worker crashed');
+      return { id: `d${o.startSec}`, start: o.startSec, end: o.startSec + 1, snrDb: o.snrDb, engine: 'whisper-webgpu', latencyMs: 5,
+        words: [{ text: 'chlorophyll', start: o.startSec, end: o.startSec + 0.5, conf: null }], gaps: [],
+        raw: { text: 'chlorophyll', decodeMs: 5, outcome: 'decoded' } };
+    },
+  };
+  const out = [];
+  connectCapture(fakeCapture, engine, {}).onSegment((s) => out.push(s));
+  const pcm = new Float32Array(16000);
+  for (const t of [1, 3, 5]) listeners[0]({ pcm, startSec: t, endSec: t + 1, snrDb: 30 });
+  await new Promise((r) => setTimeout(r, 20));
+  assert.deepEqual(out.map((s) => s.start), [1, 3, 5], 'order kept, nothing dropped');
+  assert.equal(out[0].words[0].conf, null);
+  assert.equal(out[0].raw.text, 'chlorophyll');
+  assert.equal(out[1].gaps[0].reason.kind, 'low_confidence', 'crash shows as a gap');
+  assert.equal(out[2].words[0].text, 'chlorophyll', 'later pieces still decode');
+});
