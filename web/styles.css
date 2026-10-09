@@ -1,0 +1,537 @@
+/* Boses — styles.css
+ * Owner: P3. Nobody else edits this file.
+ *
+ * Two things in here are accessibility requirements, not decoration
+ * (Boses.md Step 5 / Step 8):
+ *   - the caption type scale is user-adjustable and defaults LARGE
+ *   - contrast has two deliberate levels, and the high level is the default
+ *
+ * Layout is 360px-first: the phone propped on a desk is the design target,
+ * not an afterthought (ARCHITECTURE.md ADR-0003).
+ *
+ * No web fonts. Airplane mode is the normal operating condition, and a font
+ * fetch that fails is a caption that does not render.
+ */
+
+/* ── tokens ─────────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: dark light;
+
+  /* Type scale. Every text size is derived from this one multiplier so the
+     whole interface — not just the captions — grows with the user's setting. */
+  --type-scale: 1;
+
+  --step-0: calc(0.875rem * var(--type-scale));
+  --step-1: calc(1rem * var(--type-scale));
+  --step-2: calc(1.25rem * var(--type-scale));
+  --step-3: calc(1.625rem * var(--type-scale));
+  /* The caption size. ~28px at scale 1 — legible at arm's length on a desk. */
+  --step-caption: calc(1.75rem * var(--type-scale));
+  --step-print: calc(11.5pt * var(--type-scale));
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --radius: 10px;
+  --tap-min: 48px; /* minimum comfortable touch target */
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-caption: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-print: Georgia, "Times New Roman", serif;
+}
+
+/* Standard contrast — dark room, low glare. */
+:root,
+[data-contrast="standard"] {
+  --bg: #101418;
+  --bg-raised: #1a2129;
+  --bg-sunken: #0a0d10;
+  --fg: #e8edf2;
+  --fg-muted: #9fb0c0;
+  --border: #2c3742;
+  --accent: #7fd1c1;
+
+  /* A gap is a first-class thing to look at, not a character in a string. */
+  --gap-bg: #3a2a10;
+  --gap-fg: #ffd489;
+  --gap-border: #b8801f;
+
+  --flag: #ff9d8a;
+  --ok: #6fd08c;
+  --warn: #ffc861;
+  --bad: #ff8f8f;
+}
+
+/* High contrast — maximum separation, for bright rooms or low vision.
+   This is the default because legibility is the product. */
+[data-contrast="high"] {
+  --bg: #000000;
+  --bg-raised: #000000;
+  --bg-sunken: #000000;
+  --fg: #ffffff;
+  --fg-muted: #e6e6e6;
+  --border: #ffffff;
+  --accent: #7ff0dd;
+
+  --gap-bg: #241a00;
+  --gap-fg: #ffe08a;
+  --gap-border: #ffc861;
+
+  --flag: #ffb3a3;
+  --ok: #8ff0a8;
+  --warn: #ffd98a;
+  --bad: #ff9d9d;
+}
+
+/* ── base ───────────────────────────────────────────────────────────────── */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: var(--step-1);
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: contain;
+}
+
+/* Anything focusable gets a visible ring. Keyboard and switch access are part
+   of the accessibility claim; an invisible focus ring quietly breaks it. */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── app frame ──────────────────────────────────────────────────────────── */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-width: 60rem;
+  margin-inline: auto;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 2px solid var(--border);
+  background: var(--bg-raised);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.brand {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.brand small {
+  display: block;
+  font-size: var(--step-0);
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+
+/* ── signal-quality HUD ─────────────────────────────────────────────────── */
+/* Live capture/network state. Its job is to stop the student wondering
+   whether a gap is the app's fault or the room's fault. */
+
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  font-size: var(--step-0);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.chip::before {
+  content: "";
+  width: 0.6em; height: 0.6em;
+  border-radius: 50%;
+  background: var(--fg-muted);
+  flex: none;
+}
+
+.chip[data-state="ok"] { color: var(--ok); border-color: var(--ok); }
+.chip[data-state="ok"]::before { background: var(--ok); }
+.chip[data-state="warn"] { color: var(--warn); border-color: var(--warn); }
+.chip[data-state="warn"]::before { background: var(--warn); }
+.chip[data-state="bad"] { color: var(--bad); border-color: var(--bad); }
+.chip[data-state="bad"]::before { background: var(--bad); }
+.chip[data-state="idle"]::before { background: transparent; border: 1px solid currentColor; }
+
+/* Offline is a success state for this product, not an error. */
+.chip[data-state="offline"] { color: var(--accent); border-color: var(--accent); }
+.chip[data-state="offline"]::before { background: transparent; }
+
+/* ── controls ───────────────────────────────────────────────────────────── */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+}
+
+.control input[type="range"] {
+  width: 8rem;
+  accent-color: var(--accent);
+}
+
+.btn {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-size: var(--step-1);
+  font-weight: 600;
+  color: var(--fg);
+  background: var(--bg-sunken);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #04120f;
+}
+
+.btn-danger { border-color: var(--bad); color: var(--bad); }
+
+/* ── caption viewport ───────────────────────────────────────────────────── */
+/* The single most important element on screen. */
+
+.stage {
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.captions {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--space-4);
+  font-family: var(--font-caption);
+  font-size: var(--step-caption);
+  line-height: 1.65;
+  /* A caption that runs off the right edge is a caption nobody read. */
+  overflow-wrap: anywhere;
+  scroll-padding-block: var(--space-6);
+}
+
+.captions p.seg {
+  margin: 0 0 var(--space-4);
+  max-width: 34ch; /* measure, not full width — long lines are hard to track */
+}
+
+.captions p.seg[data-flagged="true"] {
+  border-left: 4px solid var(--flag);
+  padding-left: var(--space-3);
+}
+
+/* Segment timecode, small and out of the reading path. */
+.seg-time {
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  margin-right: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.seg-meta {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  margin-top: var(--space-1);
+}
+
+/* ── the gap ────────────────────────────────────────────────────────────── */
+/* A gap is styled deliberately, not interpolated as a string.
+   The reason is always spelled out in plain language, because
+   "you did not hear this" and "the app could not hear this" are
+   different messages and the student is entitled to know which one it is. */
+
+.gap {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  margin-inline: 0.15em;
+  background: var(--gap-bg);
+  color: var(--gap-fg);
+  border: 2px dashed var(--gap-border);
+  border-radius: var(--radius);
+  font-size: 0.7em;
+  line-height: 1.4;
+  vertical-align: 0.15em;
+  cursor: help;
+}
+
+.gap-label {
+  font-family: var(--font-ui);
+  font-size: 0.6em;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  opacity: 0.95;
+}
+
+/* Alternatives are ALWAYS rendered as uncertain. Never as a suggestion,
+   never as a correction — a wrong guess presented confidently is the exact
+   failure this product exists to prevent. */
+.gap-alt {
+  font-family: var(--font-ui);
+  font-size: 0.62em;
+  color: var(--gap-fg);
+  opacity: 0.85;
+}
+
+/* ── pacing control ─────────────────────────────────────────────────────── */
+/* Read-along pacing (Boses.md Step 5): new lines append, but the view never
+   yanks itself away from a reader who has scrolled up to re-read. */
+
+.jump {
+  position: absolute;
+  inset-inline: var(--space-4);
+  bottom: var(--space-4);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.jump[hidden] { display: none; }
+
+.jump .btn {
+  pointer-events: auto;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
+}
+
+/* ── bottom bar ─────────────────────────────────────────────────────────── */
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-top: 2px solid var(--border);
+  background: var(--bg-raised);
+  /* Clear of the iOS home indicator. */
+  padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+}
+
+.foot .spacer { flex: 1 1 auto; }
+
+.status {
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  min-height: 1.4em;
+}
+
+/* ── sheet view ─────────────────────────────────────────────────────────── */
+
+.sheet-view {
+  padding: var(--space-5) var(--space-4);
+  background: var(--bg-sunken);
+  font-family: var(--font-print);
+  font-size: var(--step-print);
+  color: #000;
+}
+
+.sheet-view[hidden] { display: none; }
+
+/* On screen the sheet is shown on white, because it is a preview of paper. */
+.sheet-view .page {
+  background: #fff;
+  color: #000;
+  max-width: 8.5in;
+  margin-inline: auto;
+  padding: 0.6in 0.7in;
+  border: 1px solid var(--border);
+}
+
+.sheet-view h1 { font-size: 1.5em; margin: 0 0 0.1em; }
+.sheet-view h2 {
+  font-size: 1.05em;
+  margin: 1.4em 0 0.35em;
+  padding-bottom: 0.15em;
+  border-bottom: 2px solid #000;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sheet-view ul { margin: 0; padding-left: 1.3em; }
+.sheet-view li { margin-bottom: 0.3em; }
+.sheet-view .meta { color: #333; font-size: 0.85em; }
+
+/* Coverage figure gets real weight — the student must see how much of this
+   record they can actually rely on. */
+.coverage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+  flex-wrap: wrap;
+}
+
+.coverage .bar-mini {
+  flex: 1 1 12rem;
+  height: 1.1em;
+  min-width: 8rem;
+  background: #ddd;
+  border: 1px solid #000;
+  overflow: hidden;
+}
+
+.coverage .bar-mini > i {
+  display: block;
+  height: 100%;
+  background: #000;
+}
+
+.coverage .num { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* The verbatim transcript. Never summarised away. */
+.transcript-body {
+  font-size: 0.9em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.draft-mark {
+  display: inline-block;
+  border: 2px solid #000;
+  padding: 0.1em 0.5em;
+  font-size: 0.7em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.print-only { display: none; }
+
+/* ── narrow screens ─────────────────────────────────────────────────────── */
+
+@media (max-width: 30rem) {
+  .captions { padding: var(--space-3); }
+  .bar, .controls, .foot { padding-inline: var(--space-3); }
+  /* Controls wrap onto their own rows rather than crushing each other. */
+  .control { flex: 1 1 100%; }
+  .control input[type="range"] { flex: 1 1 auto; width: auto; }
+  .captions p.seg { max-width: none; }
+}
+
+/* ── print ──────────────────────────────────────────────────────────────── */
+/* The terminal artifact. Everything that is app chrome disappears; the sheet
+   is the whole page. Print colours are forced because the browser default is
+   to drop backgrounds and leave a black box on white. */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 15mm;
+  }
+
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: var(--step-print);
+  }
+
+  .bar, .controls, .foot, .jump, .no-print, .sheet-actions { display: none !important; }
+
+  .app { display: block; min-height: 0; max-width: none; }
+  .stage { display: none; }
+
+  .sheet-view {
+    display: block !important;
+    padding: 0;
+    background: #fff;
+    font-size: var(--step-print);
+  }
+
+  .sheet-view .page {
+    border: 0;
+    max-width: none;
+    padding: 0;
+  }
+
+  .print-only { display: revert; }
+
+  /* Keep a section header with its first item, never orphaned at a page break. */
+  h2 { break-after: avoid-page; }
+  li { break-inside: avoid; }
+  .coverage, .meta { break-inside: avoid; }
+
+  a[href]::after { content: ""; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

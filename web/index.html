@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en" data-contrast="high">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover so the safe-area insets in styles.css do something on
+     a notched phone. Do NOT set user-scalable=no: pinch-zoom is an
+     accessibility feature and this app's whole premise is legibility. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Boses — live Taglish captions</title>
+<meta name="description" content="On-device live captions for a Filipino classroom lesson, with visible gaps instead of guesses, and a printable study sheet at the end.">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="./styles.css">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="app">
+
+  <!-- ── header ─────────────────────────────────────────────────────────── -->
+  <header class="bar no-print">
+    <h1 class="brand">Boses<small>Live captions · on-device</small></h1>
+    <div class="hud" id="hud"></div>
+  </header>
+
+  <!-- ── presentation controls ──────────────────────────────────────────── -->
+  <div class="controls no-print" role="group" aria-label="Display settings">
+    <label class="control">
+      <span>Type size</span>
+      <input type="range" id="type-scale" min="0.85" max="2.4" step="0.05"
+             value="1" aria-label="Caption type size">
+      <output id="type-scale-out">100%</output>
+    </label>
+
+    <button class="btn" id="contrast-toggle" aria-pressed="true">
+      Contrast: high
+    </button>
+
+    <button class="btn" id="follow-toggle" aria-pressed="true">
+      Follow newest: on
+    </button>
+  </div>
+
+  <!-- ── caption stage ──────────────────────────────────────────────────── -->
+  <main class="stage">
+    <div class="captions" id="captions"></div>
+
+    <div class="jump" id="jump" hidden>
+      <button class="btn" id="jump-btn">↓ Jump to newest</button>
+    </div>
+  </main>
+
+  <!-- ── study sheet (hidden until End class) ───────────────────────────── -->
+  <section class="sheet-view" id="sheet-view" hidden>
+    <div class="sheet-actions no-print" style="padding:1rem;display:flex;gap:.75rem;flex-wrap:wrap">
+      <button class="btn btn-primary" id="print-btn">Print / save as PDF</button>
+      <button class="btn" id="back-btn">Back to captions</button>
+      <span class="status" id="sheet-status"></span>
+    </div>
+    <div id="sheet"></div>
+  </section>
+
+  <!-- ── bottom bar ─────────────────────────────────────────────────────── -->
+  <footer class="foot no-print">
+    <button class="btn" id="flag-btn">I missed this</button>
+    <button class="btn" id="start-btn">Start lesson</button>
+    <button class="btn" id="end-btn" disabled>End class → sheet</button>
+    <span class="spacer"></span>
+    <span class="status" id="status" role="status" aria-live="polite"></span>
+  </footer>
+</div>
+
+<script type="module">
+// ── boot ────────────────────────────────────────────────────────────────────
+// P3's scope is the shell, the renderer, and the sheet. Other owners' modules
+// are resolved lazily and each one is allowed to be missing without taking the
+// UI down with it: at T+0.5 the whole product is demoable against fixtures
+// while asr.js / capture.js / confidence.js do not exist yet.
+
+import { CaptionRenderer, Presentation, SignalQualityHUD, TYPE_MIN, TYPE_MAX }
+  from './captions.js';
+import { StudySheet, deriveCoverage } from './sheet.js';
+
+const $ = (id) => document.getElementById(id);
+const status = (msg) => { $('status').textContent = msg; };
+
+const presentation = new Presentation();
+const captions = new CaptionRenderer($('captions'));
+const hud = new SignalQualityHUD($('hud'));
+const sheet = new StudySheet($('sheet'));
+
+// ── session state ───────────────────────────────────────────────────────────
+// Held here so the sheet can be produced even if storage is unavailable.
+const session = {
+  id: `s-${Date.now().toString(36)}`,
+  startedAt: Date.now(),
+  title: 'Lesson',
+  segments: [],
+  flags: [],
+  vocab: [],
+  summaryLines: [],
+  llmDraft: undefined,
+};
+let engine = null;
+let capturing = false;
+let started = false;
+
+// ── flags ───────────────────────────────────────────────────────────────────
+// Route through P4's store when it exists; fall back to in-memory so the
+// feature is never silently absent.
+let store = null;
+try {
+  store = await import('./store.js');
+} catch {
+  status('Local storage module not merged yet — this session is in memory only.');
+}
+
+function persistFlags(flags) {
+  try { store?.saveFlags?.(session.id, flags); } catch { /* non-fatal */ }
+}
+
+// ── engine ──────────────────────────────────────────────────────────────────
+// engine-select.js is P4's. If it is absent, fixture mode is unavailable and
+// we say so plainly instead of showing an empty screen.
+const params = new URLSearchParams(location.search);
+const wantsFixture = params.has('fixture');
+
+if (wantsFixture) {
+  try {
+    engine = (await import('./engine-select.js')).default;
+    await engine.init?.();
+    const id = engine?.id ?? 'fixture';
+    $('start-btn').textContent = 'Start lesson (fixture)';
+    status(`Fixture mode — deterministic replay via ${id}. No model load.`);
+    hud.render({ online: navigator.onLine, capturing: false, engine: id });
+  } catch (err) {
+    console.warn('engine-select unavailable', err);
+    status('Fixture engine not merged yet — shell is running, captions are idle.');
+    hud.render({ online: navigator.onLine, capturing: false,
+                 note: 'Fixture engine not available yet (engine-select.js)' });
+  }
+} else {
+  hud.render({ online: navigator.onLine, capturing: false, engine: 'starting…' });
+  status('Model engine not selected. Add ?fixture=1 to the URL for the offline demo path.');
+}
+
+// ── controls ────────────────────────────────────────────────────────────────
+
+const scaleInput = $('type-scale');
+scaleInput.min = String(TYPE_MIN);
+scaleInput.max = String(TYPE_MAX);
+scaleInput.value = String(presentation.getScale());
+$('type-scale-out').value = `${Math.round(presentation.getScale() * 100)}%`;
+
+scaleInput.addEventListener('input', () => {
+  const v = Number(scaleInput.value);
+  presentation.setScale(v);
+  $('type-scale-out').value = `${Math.round(v * 100)}%`;
+});
+
+$('contrast-toggle').addEventListener('click', (e) => {
+  const c = presentation.toggleContrast();
+  e.currentTarget.textContent = `Contrast: ${c}`;
+  e.currentTarget.setAttribute('aria-pressed', String(c === 'high'));
+});
+
+$('follow-toggle').addEventListener('click', (e) => {
+  const on = !(e.currentTarget.getAttribute('aria-pressed') === 'true');
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+  e.currentTarget.textContent = `Follow newest: ${on ? 'on' : 'off'}`;
+  if (on) captions.scrollToLatest();
+});
+
+// Pacing: show the jump affordance only when we have stopped following.
+captions.onPacingChange = (following) => {
+  $('jump').hidden = following || !started;
+};
+$('jump-btn').addEventListener('click', () => captions.scrollToLatest());
+
+$('flag-btn').addEventListener('click', () => {
+  const span = captions.flagVisible('user_flagged');
+  if (!span) { status('Nothing on screen to flag yet.'); return; }
+  session.flags = captions.getFlags();
+  persistFlags(session.flags);
+  status(`Flagged ${formatClock(span.start)} — it will be on the sheet.`);
+});
+
+// ── lesson lifecycle ────────────────────────────────────────────────────────
+
+$('start-btn').addEventListener('click', async () => {
+  started = true;
+  $('end-btn').disabled = false;
+  capturing = true;
+  hud.render({ online: navigator.onLine, capturing: true, engine: engine?.id ?? 'fixture' });
+  status('Listening. Keep this screen on.');
+
+  if (engine) {
+    try {
+      for await (const seg of streamSegments(engine)) {
+        session.segments.push(seg);
+        captions.appendSegment(seg);
+        // Checkpoint on arrival, not at the end — a phone that dies at minute
+        // 18 of 20 must not lose the lesson. P4's store owns the write.
+        try { await store?.appendSegment?.(session.id, seg); } catch {}
+        hud.render({
+          online: navigator.onLine, capturing: true, engine: engine.id,
+          snrDb: seg.snrDb, latencyMs: seg.latencyMs,
+        });
+      }
+    } catch (err) {
+      console.warn('capture stream ended', err);
+      capturing = false;
+      status('Capture stopped. Segments captured so far are kept.');
+      hud.render({ online: navigator.onLine, capturing: false, engine: engine?.id ?? 'fixture' });
+    }
+  } else {
+    status('No engine available — press End class to produce an empty sheet, or add ?fixture=1.');
+  }
+});
+
+$('end-btn').addEventListener('click', () => {
+  capturing = false;
+  session.segments = captions.getSegments();
+  session.flags = captions.getFlags();
+
+  // Vocab + summary belong to P4. Render whatever exists; never invent.
+  session.vocab = [];
+  try { session.vocab = store?.extractVocab?.(session) ?? []; } catch {}
+
+  const coverage = deriveCoverage(session.segments);
+  sheet.render({
+    session,
+    coverage,
+    summaryLines: session.summaryLines,
+    llmDraft: session.llmDraft,
+    confidenceSource: engine?.supportsWordConfidence === false
+      ? 'segment-level reliability (decoder confidence unavailable)'
+      : 'per-token decoder confidence',
+  });
+
+  $('stage').hidden = true;
+  $('sheet-view').hidden = false;
+  $('sheet-status').textContent =
+    `${Math.round(coverage.coverageRatio * 100)}% coverage · ${session.flags.length} flagged`;
+  hud.render({ online: navigator.onLine, capturing: false, engine: engine?.id ?? 'fixture' });
+  window.scrollTo(0, 0);
+});
+
+$('print-btn').addEventListener('click', () => sheet.print());
+
+$('back-btn').addEventListener('click', () => {
+  $('sheet-view').hidden = true;
+  $('stage').hidden = false;
+  captions.render();
+});
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+
+function formatClock(sec) {
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+/**
+ * Drive the engine. Capture is P2's and arrives as a callback; until then the
+ * engine itself yields segments (fixture mode), so the UI is exercisable.
+ */
+async function* streamSegments(eng) {
+  if (typeof eng.segments === 'function') {
+    for (const seg of await eng.segments()) yield seg;
+    return;
+  }
+  if (typeof eng.onSegment === 'function') {
+    const queue = [];
+    let done = false;
+    let notify = () => {};
+    eng.onSegment((seg) => { queue.push(seg); notify(); });
+    while (!done) {
+      if (queue.length) { yield queue.shift(); continue; }
+      await new Promise((r) => { notify = r; });
+    }
+  }
+}
+
+// ── connectivity ────────────────────────────────────────────────────────────
+// Airplane mode is the expected state, so the HUD reports it as a success.
+const onNet = () => hud.render({
+  online: navigator.onLine, capturing, engine: engine?.id ?? 'fixture',
+});
+addEventListener('online', onNet);
+addEventListener('offline', onNet);
+
+// ── service worker ──────────────────────────────────────────────────────────
+// Register with a wider scope first so the worker can also serve
+// lessons/fixtures/*.json, which live outside /web/. Hosts that do not send
+// `Service-Worker-Allowed` will refuse that; fall back to the default scope
+// rather than ending up with no worker at all.
+if ('serviceWorker' in navigator) {
+  addEventListener('load', async () => {
+    const reg = async (scope) =>
+      navigator.serviceWorker.register('./sw.js', scope ? { scope } : undefined);
+
+    try {
+      try {
+        await reg('../');
+        console.info('[boses] service worker registered with repo-root scope');
+      } catch {
+        await reg(); // host refused the wider scope — default is fine
+        console.info('[boses] service worker registered at /web scope; ' +
+          'offline fixture mode needs Service-Worker-Allowed: / on sw.js');
+      }
+    } catch (err) {
+      // Offline will not work without it; say so rather than pretending.
+      console.warn('sw registration failed', err);
+      status('Offline cache unavailable — service worker did not register.');
+    }
+  });
+}
+
+// Keep the screen awake if the platform allows it — the session must not sleep
+// mid-lesson on a phone propped on a desk.
+try {
+  if ('wakeLock' in navigator) {
+    const request = () => navigator.wakeLock.request('screen').catch(() => {});
+    addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') request();
+    });
+    $('start-btn').addEventListener('click', request, { once: true });
+  }
+} catch { /* not supported — harmless */ }
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Boses">
+  <rect width="512" height="512" rx="96" fill="#000"/>
+  <!-- A caption bar with a visible gap in it: the product's core promise,
+       rendered as the mark itself. -->
+  <rect x="72" y="150" width="368" height="26" rx="13" fill="#7ff0dd"/>
+  <rect x="72" y="196" width="150" height="26" rx="13" fill="#7ff0dd"/>
+  <rect x="234" y="196" width="74" height="26" rx="6" fill="none" stroke="#ffc861" stroke-width="6" stroke-dasharray="12 9"/>
+  <rect x="320" y="196" width="120" height="26" rx="13" fill="#7ff0dd"/>
+  <rect x="72" y="242" width="250" height="26" rx="13" fill="#7ff0dd"/>
+  <rect x="334" y="242" width="106" height="26" rx="6" fill="none" stroke="#ffc861" stroke-width="6" stroke-dasharray="12 9"/>
+  <rect x="72" y="330" width="368" height="10" rx="5" fill="#3a3a3a"/>
+  <rect x="72" y="330" width="238" height="10" rx="5" fill="#ffffff"/>
+  <text x="72" y="412" fill="#7ff0dd" font-family="system-ui,sans-serif" font-size="58" font-weight="700">boses</text>
+</svg>
