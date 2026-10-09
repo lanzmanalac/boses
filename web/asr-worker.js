@@ -86,26 +86,31 @@ async function loadPipeline(preference = null) {
     return;
   }
   const choice = pickModels(preference);
+  // WebGPU tries fp16 first: half the download of fp32 (base: 146 MB vs 291 MB)
+  // and Hugging Face served the fp16 files ~100x faster than fp32 when tested.
+  // Devices without shader-f16 fall through to fp32, then to WASM.
+  const attempts = [
+    { device: 'webgpu', model: choice.webgpu, dtype: 'fp16' },
+    { device: 'webgpu', model: choice.webgpu, dtype: 'fp32' },
+    { device: 'wasm', model: choice.wasm, dtype: 'q8' },
+  ];
   const opts = {
     progress_callback: (info) => {
       self.postMessage(/** @type {FromWorker} */ ({ type: 'progress', p: progress01(info) }));
     },
   };
-  try {
-    asr = await pipeline('automatic-speech-recognition', choice.webgpu, {
-      ...opts,
-      device: 'webgpu',
-    });
-    device = 'webgpu';
-    modelId = choice.webgpu;
-  } catch {
-    asr = await pipeline('automatic-speech-recognition', choice.wasm, {
-      ...opts,
-      device: 'wasm',
-    });
-    device = 'wasm';
-    modelId = choice.wasm;
+  let lastError = null;
+  for (const a of attempts) {
+    try {
+      asr = await pipeline('automatic-speech-recognition', a.model, { ...opts, device: a.device, dtype: a.dtype });
+      device = a.device;
+      modelId = `${a.model} (${a.dtype})`;
+      break;
+    } catch (err) {
+      lastError = err;
+    }
   }
+  if (!asr) throw lastError ?? new Error('no model loaded');
   self.postMessage(/** @type {FromWorker} */ ({ type: 'loaded', device, model: modelId }));
 }
 
