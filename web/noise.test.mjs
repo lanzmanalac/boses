@@ -144,3 +144,19 @@ test('mic warm-up silence does not drag the room floor down', () => {
   assert.ok(s.floorDb >= -75, `floor ${s.floorDb}`);
   assert.ok(out.every((seg) => seg.snrDb < 60), 'SNR not inflated by a near-zero floor');
 });
+
+test('MicCapture keeps a per-segment gate log for device tests', async () => {
+  const { MicCapture } = await import('./capture.js');
+  const mic = new MicCapture();
+  const pcm = readWav(sample('lesson-noisy'));
+  for (let i = 0; i < pcm.length; i += 2048) mic.segmenter.push(pcm.subarray(i, i + 2048));
+  mic.segmenter.flush();
+  const log = mic.exportLog();
+  assert.ok(log.segments.length > 5);
+  assert.ok(log.segments.some((s) => s.result === 'sent_to_asr'));
+  for (const s of log.segments) {
+    assert.ok(Number.isFinite(s.snrDb) && Number.isFinite(s.floorDb) && s.durSec > 0);
+    assert.match(s.result, /^(sent_to_asr|too_short|snr_below_threshold)$/);
+  }
+  assert.equal(log.settings.snrThresholdDb, 16);
+});

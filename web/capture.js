@@ -41,6 +41,17 @@ export class MicCapture {
     /** @type {AudioWorkletNode | null} */ this.node = null;
     this.resampler = null;
     this.capturing = false;
+    /** Every segment the gate decided on, for tracing a missing phrase to capture vs. ASR. */
+    this.log = [];
+    this.startedAt = null;
+    this.segmenter.onSegment((seg) => this.log.push({
+      at: new Date().toISOString(),
+      startSec: seg.startSec, endSec: seg.endSec,
+      durSec: Math.round((seg.endSec - seg.startSec) * 100) / 100,
+      snrDb: seg.snrDb,
+      result: seg.reason ?? 'sent_to_asr',
+      floorDb: Math.round(this.segmenter.floorDb * 10) / 10,
+    }));
   }
 
   /** Ask for the mic and start segmenting. Rejects if permission is denied. */
@@ -72,6 +83,7 @@ export class MicCapture {
     };
     source.connect(this.node); // not connected to destination: no echo through speakers
     this.capturing = true;
+    this.startedAt = new Date().toISOString();
   }
 
   /** @param {(seg: RawSegment) => void} cb */
@@ -86,6 +98,25 @@ export class MicCapture {
     this.stream?.getTracks().forEach((t) => t.stop());
     await this.ctx?.close();
     this.node = null; this.stream = null; this.ctx = null;
+  }
+
+  /**
+   * Per-segment gate log plus the settings and device it ran with. Hand this to
+   * P1/P4 after a device test: a missing phrase is either 'gap' here (capture)
+   * or 'sent_to_asr' with wrong text (recognition).
+   */
+  exportLog() {
+    const track = this.stream?.getAudioTracks?.()[0];
+    return {
+      startedAt: this.startedAt,
+      exportedAt: new Date().toISOString(),
+      userAgent: globalThis.navigator?.userAgent,
+      microphone: track?.label || null,
+      audioContextRate: this.ctx?.sampleRate ?? null,
+      resampledInJs: Boolean(this.resampler),
+      settings: this.opts,
+      segments: [...this.log],
+    };
   }
 
   /** For SignalQualityHUD.render(): { capturing, snrDb } plus floor/level for debugging. */

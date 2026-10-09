@@ -5,7 +5,7 @@
 //   node lessons/tools/gate-report.mjs [--hangover 0.35] [--snr 12]
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { Segmenter, DEFAULTS } from '../../web/noise.js';
+import { Segmenter, DEFAULTS, rmsDb, FRAME, SAMPLE_RATE } from '../../web/noise.js';
 
 const root = new URL('../', import.meta.url);
 const arg = (name, fallback) => {
@@ -50,6 +50,14 @@ export function segmentFile(url, o = opts) {
   return out;
 }
 
+/** The room floor the live segmenter settles on for this recording. */
+function floorOf(url) {
+  const seg = new Segmenter(opts);
+  const pcm = readWav(url);
+  for (let i = 0; i < pcm.length; i += 2048) seg.push(pcm.subarray(i, i + 2048));
+  return seg.floorDb;
+}
+
 export function readLabels(url) {
   return readFileSync(url, 'utf8').trim().split('\n').map((l, i) => {
     const [a, b, text] = l.split('\t');
@@ -67,6 +75,38 @@ const lines = [
 ];
 const summary = ['| Recording | Segments | To ASR | Gaps | Labelled lines reaching ASR |', '| --- | ---: | ---: | ---: | --- |'];
 const detail = [];
+const lineChecks = [];
+const TOL = 0.1; // human label edges are only accurate to ~0.1 s
+
+/**
+ * Per labelled line: is all of it inside audio sent to ASR? A line may span two
+ * pieces (cut between words); what matters is that its first and last word arrive.
+ */
+export function clipCheck(wav, labels, passed, pcm, floorDb) {
+  // Loudest 20 ms frame in [a, b], relative to the room floor. Below the
+  // onset margin it is room tone, so leaving it out clips nothing.
+  const loudness = (a, b) => {
+    let max = -Infinity;
+    for (let i = Math.floor(a * SAMPLE_RATE); i + FRAME <= Math.min(pcm.length, b * SAMPLE_RATE); i += FRAME) {
+      max = Math.max(max, rmsDb(pcm.subarray(i, i + FRAME)));
+    }
+    return max - floorDb;
+  };
+  const speechIn = (a, b) => b - a > 0.02 && loudness(a, b) > DEFAULTS.startMarginDb;
+  return labels.map((l) => {
+    const parts = passed.filter((s) => s.endSec > l.start && s.startSec < l.end).sort((a, b) => a.startSec - b.startSec);
+    if (!parts.length) return { wav, n: l.n, status: 'gap (not sent to ASR)' };
+    const head = l.start - parts[0].startSec;           // > 0: audio starts before the line
+    const tail = parts[parts.length - 1].endSec - l.end; // > 0: audio runs past the line
+    const holes = parts.slice(1).filter((s, i) => s.startSec - parts[i].endSec > 0.05)
+      .some((s, i) => speechIn(parts[i].endSec, s.startSec));
+    const startClipped = head < -TOL && speechIn(l.start, parts[0].startSec);
+    const endClipped = tail < -TOL && speechIn(parts[parts.length - 1].endSec, l.end);
+    const status = startClipped ? 'start clipped' : endClipped ? 'end clipped' : holes ? 'speech lost between pieces'
+      : parts.length > 1 ? 'ok (split across pieces)' : 'ok';
+    return { wav, n: l.n, status, head, tail, pieces: parts.length };
+  });
+}
 
 for (const [wav, lab] of RUNS) {
   const segs = segmentFile(new URL(wav, root));
@@ -77,12 +117,29 @@ for (const [wav, lab] of RUNS) {
   const missed = labels.filter((l) => !reached.includes(l)).map((l) => l.n);
   summary.push(`| \`${wav}\` | ${segs.length} | ${passed.length} | ${segs.length - passed.length} | ` +
     (lab ? `${reached.length}/${labels.length}${missed.length ? ` (missing ${missed.join(', ')})` : ''}` : 'no speech — should be 0 to ASR') + ' |');
+  if (lab) lineChecks.push(...clipCheck(wav, labels, passed, readWav(new URL(wav, root)), floorOf(new URL(wav, root))));
   detail.push('', `### \`${wav}\``, '', '| # | Start | End | Dur s | SNR dB | Result | Lines |', '| ---: | ---: | ---: | ---: | ---: | --- | --- |');
   segs.forEach((s, i) => detail.push(`| ${i + 1} | ${s.startSec.toFixed(2)} | ${s.endSec.toFixed(2)} | ${(s.endSec - s.startSec).toFixed(2)} | ` +
     `${s.snrDb.toFixed(1)} | ${s.reason ?? '**ASR**'} | ${covers(s).join(', ')} |`));
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
-  writeFileSync(new URL('GATE-REPORT.md', root), [...lines, '## Summary', '', ...summary, '', '## Every segment', ...detail, ''].join('\n'));
-  console.log(summary.join('\n'));
+  const bad = lineChecks.filter((c) => !c.status.startsWith('ok') && !c.status.startsWith('gap'));
+  const clip = ['## Clipping check', '',
+    `Every labelled line, checked for a clipped first or last word. A line counts as clipped only if the part left out is more than ${TOL} s ` +
+    `(the precision of the human labels) **and** contains sound louder than the room (+${DEFAULTS.startMarginDb} dB) — trimmed room tone is not clipping. ` +
+    `Lines gated as noise are counted separately; they are gaps by design.`, '',
+    '| Recording | Lines sent to ASR | Whole line arrives | Split across 2+ pieces | Start clipped | End clipped | Gated |', '| --- | ---: | ---: | ---: | ---: | ---: | ---: |'];
+  for (const wav of [...new Set(lineChecks.map((c) => c.wav))]) {
+    const c = lineChecks.filter((x) => x.wav === wav);
+    const n = (f) => c.filter(f).length;
+    clip.push(`| \`${wav}\` | ${n((x) => !x.status.startsWith('gap'))} | ${n((x) => x.status.startsWith('ok'))} | ${n((x) => x.status === 'ok (split across pieces)')} | ` +
+      `${n((x) => x.status === 'start clipped')} | ${n((x) => x.status === 'end clipped')} | ${n((x) => x.status.startsWith('gap'))} |`);
+  }
+  const heads = lineChecks.filter((c) => c.head !== undefined);
+  clip.push('', `Margins on lines sent to ASR: audio starts ${Math.min(...heads.map((c) => c.head)).toFixed(2)}–${Math.max(...heads.map((c) => c.head)).toFixed(2)} s before the line, ` +
+    `ends ${Math.min(...heads.map((c) => c.tail)).toFixed(2)}–${Math.max(...heads.map((c) => c.tail)).toFixed(2)} s after it.`);
+  if (bad.length) clip.push('', '**Problems:**', ...bad.map((c) => `- \`${c.wav}\` line ${c.n}: ${c.status} (start margin ${c.head?.toFixed(2)} s, end margin ${c.tail?.toFixed(2)} s)`));
+  writeFileSync(new URL('GATE-REPORT.md', root), [...lines, '## Summary', '', ...summary, '', ...clip, '', '## Every segment', ...detail, ''].join('\n'));
+  console.log([...summary, '', ...clip].join('\n'));
 }
