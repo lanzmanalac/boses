@@ -39,7 +39,7 @@ export const DEFAULTS = Object.freeze({
                             //    22 dB: captions every ~4-6 s; whisper-base WER clean 57% (47% at 12 s cuts), noisy 58% (same)
   hangoverSec: 0.5,         // measured: 0.35 cut lines at commas; 0.5 cut whisper-base WER 62%->46% (clean)
   preRollSec: 0.2,          // audio kept before onset so first syllables aren't clipped
-  postRollSec: 0.15,
+  postRollSec: 0.3,         // + 0.2 s pre-roll covers the whole 0.5 s pause: nothing between pieces is dropped
   minSpeechSec: 0.3,        // shorter -> too_short
   maxSegmentSec: 12,        // force-cut long speech so captions keep flowing
   floorWindowSec: 5,        // noise floor = low percentile of the last N seconds
@@ -235,6 +235,11 @@ export class Segmenter {
     // Trim trailing hangover silence but keep a short post-roll.
     const trim = Math.max(0, a.quiet - Math.round(o.postRollSec * framesPerSec));
     const frames = a.frames.slice(0, a.frames.length - trim);
+    // The trimmed pause becomes the next utterance's pre-roll instead of being
+    // dropped: a soft syllable inside a 'quiet' stretch must still reach ASR.
+    this.preRoll = a.frames.slice(a.frames.length - trim);
+    this._remember(new Float32Array(0)); // apply the pre-roll length cap
+    this.preRoll = this.preRoll.filter((f) => f.length);
     const speechDb = a.db.slice(0, Math.max(1, a.db.length - a.quiet));
 
     const pcm = new Float32Array(frames.length * FRAME);
