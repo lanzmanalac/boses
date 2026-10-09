@@ -42,12 +42,30 @@ Nobody starts feature work until these six things exist. They are short and they
 
 1. [ ] Create the **public** GitHub repo (must be public by the deadline — do it now, not later)
 2. [ ] Create empty directories for every owner (section 4)
-3. [ ] Commit `contracts.ts` from section 3 **verbatim** — do not redesign it, import it
+3. [ ] Commit `contracts.ts` from section 3 **verbatim** — do not redesign it, import it.
+   Then **read it and agree it out loud** — it is frozen only once all four have accepted the shapes.
 4. [ ] Create `lessons/fixtures/` with the three fixture files listed in section 5
 5. [ ] Agree the module owner table (section 4) out loud in the chat
 6. [ ] Post the two decision deadlines (section 8) in the chat so nobody is surprised later
 
 **Timebox: 30 minutes. Hard stop even if unfinished.**
+
+> ### Running it locally — nobody skips this
+>
+> These are web files. Browsers refuse to load them by double-clicking
+> `index.html`, so a tiny local web server is required. From the repo root:
+>
+> ```
+> python3 -m http.server 8000
+> ```
+>
+> Then open `http://localhost:8000/web/index.html`. Add `?fixture=1` to the URL
+> for the offline demo path that replays committed test data instead of loading
+> the model.
+>
+> **Deploy it somewhere a judge can open it, not just on your laptop.** Decide
+> the host early — the offline behaviour depends on it (see the scope note in
+> `web/sw.js`). P4 owns the README and must include the run instructions above.
 
 ---
 
@@ -160,9 +178,11 @@ These are deliberate, not incidental:
 | **P1** | ML / model boundary | `web/asr.js`, `web/hotwords.js`, `web/hw-eval.js` | gold transcripts |
 | **P2** | Audio production & capture | `web/capture.js`, `web/noise.js`, `lessons/**` (all audio, transcripts, hotword lists) | — (produces them) |
 | **P3** | Live UI & print | `web/captions.js`, `web/sheet.js`, `web/sw.js`, `web/index.html`, `web/styles.css` | `*.fixture.json` |
-| **P4** | Post-class, taglish, eval, submission | `web/confidence.js`, `web/taglish.js`, `web/vocab.js`, `web/summary.js`, `web/store.js`, `eval/**`, `README.md`, `DISCLOSURES.md` | `*.fixture.json` |
+| **P4** | Post-class, taglish, eval, submission | `web/confidence.js`, `web/taglish.js`, `web/vocab.js`, `web/summary.js`, `web/store.js`, `web/fixture.js`, `web/engine-select.js`, `eval/**`, `README.md`, `DISCLOSURES.md` | `*.fixture.json` |
 
-**P4 also owns `web/engine-select.js`** — the single adapter that chooses between the real engine and the fixture engine. Nobody else touches it. This is what makes the swap invisible to P3.
+**P4 also owns `web/engine-select.js` and `web/fixture.js`** — the single adapter that chooses between the real engine and the fixture engine, and the fixture engine itself. Nobody else touches either. This is what makes the swap invisible to P3.
+
+> **Resolved ownership note (Checkpoint B).** Earlier drafts of this document gave `engine-select.js` to P3 in the code sample while the table gave it to P4. **P4 owns both files.** The sample below has been corrected. `fixture.js` was named in the sample but never assigned to anyone; it is P4's.
 
 ### Integration owner
 **P3** is the integration owner: they run every merge checkpoint and keep `main` runnable. Everyone else branches; they merge.
@@ -184,14 +204,22 @@ These are deliberate, not incidental:
 
 **The fixture engine — what everyone codes against until the real model lands:**
 
-```ts
-// web/engine-select.js — owned by P3
-import type { AsrEngine, TranscriptSegment } from '../contracts';
-import { WhisperEngine } from './asr';          // P1 delivers this
-import { FixtureEngine } from './fixture';      // available from T+0:30
+```js
+// web/engine-select.js — owned by P4
+//
+// NOTE FOR EVERYONE: browser files are PLAIN JAVASCRIPT. There is no build
+// step and no transpiler, so nothing may need compiling before it runs —
+// airplane mode is the normal operating condition. Type information goes in
+// JSDoc comments that point at contracts.ts; nothing imports the contract file
+// at runtime. Writing `import type`, `private x: string`, or `satisfies` inside
+// a .js file makes the browser refuse to parse it and the page goes blank.
+// contracts.ts remains the single source of truth for the agreed shapes.
 
-const params = new URLSearchParams(location.search);
-let engine: AsrEngine;
+import { WhisperEngine } from './asr';          // P1 delivers this
+import { FixtureEngine } from './fixture';      // P4 delivers this
+
+/** @type {import('../contracts').AsrEngine} */
+let engine;
 
 if (params.has('fixture')) {
   engine = new FixtureEngine();                // deterministic, instant, offline
