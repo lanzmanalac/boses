@@ -1,0 +1,829 @@
+{
+  "fixture": "clean",
+  "timing": "recorded",
+  "confFloor": 0.6,
+  "note": "TranscriptSegment[] per contracts.ts; words below confFloor are already in gaps",
+  "segments": [
+    {
+      "id": "clean-001",
+      "start": 0.9,
+      "end": 4.97,
+      "snrDb": 23.5,
+      "words": [
+        {
+          "text": "Okay",
+          "start": 0.9,
+          "end": 1.22,
+          "conf": 0.9
+        },
+        {
+          "text": "class,",
+          "start": 1.22,
+          "end": 1.59,
+          "conf": 0.88
+        },
+        {
+          "text": "good",
+          "start": 1.59,
+          "end": 1.9,
+          "conf": 0.94
+        },
+        {
+          "text": "morning.",
+          "start": 1.9,
+          "end": 2.38,
+          "conf": 0.87
+        },
+        {
+          "text": "Ngayon,",
+          "start": 2.38,
+          "end": 2.8,
+          "conf": 0.93
+        },
+        {
+          "text": "pag-aaralan",
+          "start": 2.8,
+          "end": 3.49,
+          "conf": 0.91
+        },
+        {
+          "text": "natin",
+          "start": 3.49,
+          "end": 3.86,
+          "conf": 0.87
+        },
+        {
+          "text": "ang",
+          "start": 3.86,
+          "end": 4.12,
+          "conf": 0.93
+        },
+        {
+          "text": "photosynthesis.",
+          "start": 4.12,
+          "end": 4.97,
+          "conf": 0.75
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 771
+    },
+    {
+      "id": "clean-002",
+      "start": 5.73,
+      "end": 10.43,
+      "snrDb": 21.6,
+      "words": [
+        {
+          "text": "Ang",
+          "start": 5.73,
+          "end": 5.96,
+          "conf": 0.87
+        },
+        {
+          "text": "photosynthesis",
+          "start": 5.96,
+          "end": 6.69,
+          "conf": 0.88
+        },
+        {
+          "text": "ay",
+          "start": 6.69,
+          "end": 6.87,
+          "conf": 0.9
+        },
+        {
+          "text": "ang",
+          "start": 6.87,
+          "end": 7.1,
+          "conf": 0.88
+        },
+        {
+          "text": "proseso",
+          "start": 7.1,
+          "end": 7.51,
+          "conf": 0.88
+        },
+        {
+          "text": "kung",
+          "start": 7.51,
+          "end": 7.78,
+          "conf": 0.9
+        },
+        {
+          "text": "saan",
+          "start": 7.78,
+          "end": 8.06,
+          "conf": 0.97
+        },
+        {
+          "text": "gumagawa",
+          "start": 8.06,
+          "end": 8.51,
+          "conf": 0.88
+        },
+        {
+          "text": "ng",
+          "start": 8.51,
+          "end": 8.7,
+          "conf": 0.94
+        },
+        {
+          "text": "sariling",
+          "start": 8.7,
+          "end": 9.15,
+          "conf": 0.94
+        },
+        {
+          "text": "pagkain",
+          "start": 9.15,
+          "end": 9.56,
+          "conf": 0.91
+        },
+        {
+          "text": "ang",
+          "start": 9.56,
+          "end": 9.79,
+          "conf": 0.93
+        },
+        {
+          "text": "mga",
+          "start": 9.79,
+          "end": 10.02,
+          "conf": 0.87
+        },
+        {
+          "text": "halaman.",
+          "start": 10.02,
+          "end": 10.43,
+          "conf": 0.87
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 1396
+    },
+    {
+      "id": "clean-003",
+      "start": 11.15,
+      "end": 15.8,
+      "snrDb": 22.5,
+      "words": [
+        {
+          "text": "Plants",
+          "start": 11.15,
+          "end": 11.7,
+          "conf": 0.91
+        },
+        {
+          "text": "need",
+          "start": 11.7,
+          "end": 12.11,
+          "conf": 0.96
+        },
+        {
+          "text": "three",
+          "start": 12.11,
+          "end": 12.59,
+          "conf": 0.88
+        },
+        {
+          "text": "things:",
+          "start": 12.59,
+          "end": 13.13,
+          "conf": 0.92
+        },
+        {
+          "text": "sunlight,",
+          "start": 13.13,
+          "end": 13.82,
+          "conf": 0.87
+        },
+        {
+          "text": "water,",
+          "start": 13.82,
+          "end": 14.3,
+          "conf": 0.95
+        },
+        {
+          "text": "and",
+          "start": 14.3,
+          "end": 14.64,
+          "conf": 0.96
+        },
+        {
+          "text": "carbon",
+          "start": 14.64,
+          "end": 15.18,
+          "conf": 0.83
+        },
+        {
+          "text": "dioxide.",
+          "start": 15.18,
+          "end": 15.8,
+          "conf": 0.88
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 1411
+    },
+    {
+      "id": "clean-004",
+      "start": 16.48,
+      "end": 20.15,
+      "snrDb": 25.4,
+      "words": [
+        {
+          "text": "Ang",
+          "start": 16.48,
+          "end": 16.75,
+          "conf": 0.92
+        },
+        {
+          "text": "chlorophyll",
+          "start": 16.75,
+          "end": 17.44,
+          "conf": 0.87
+        },
+        {
+          "text": "ang",
+          "start": 17.44,
+          "end": 17.7,
+          "conf": 0.87
+        },
+        {
+          "text": "magbibigay",
+          "start": 17.7,
+          "end": 18.34,
+          "conf": 0.87
+        },
+        {
+          "text": "ng",
+          "start": 18.34,
+          "end": 18.55,
+          "conf": 0.9
+        },
+        {
+          "text": "kulay",
+          "start": 18.55,
+          "end": 18.93,
+          "conf": 0.95
+        },
+        {
+          "text": "berde",
+          "start": 18.93,
+          "end": 19.3,
+          "conf": 0.87
+        },
+        {
+          "text": "sa",
+          "start": 19.3,
+          "end": 19.51,
+          "conf": 0.96
+        },
+        {
+          "text": "mga",
+          "start": 19.51,
+          "end": 19.78,
+          "conf": 0.9
+        },
+        {
+          "text": "dahon.",
+          "start": 19.78,
+          "end": 20.15,
+          "conf": 0.94
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 1156
+    },
+    {
+      "id": "clean-005",
+      "start": 20.15,
+      "end": 23.33,
+      "snrDb": 25.7,
+      "words": [
+        {
+          "text": "Kinukuha",
+          "start": 20.15,
+          "end": 20.7,
+          "conf": 0.98
+        },
+        {
+          "text": "ng",
+          "start": 20.7,
+          "end": 20.92,
+          "conf": 0.92
+        },
+        {
+          "text": "chlorophyll",
+          "start": 20.92,
+          "end": 21.63,
+          "conf": 0.77
+        },
+        {
+          "text": "ang",
+          "start": 21.63,
+          "end": 21.9,
+          "conf": 0.91
+        },
+        {
+          "text": "enerhiya",
+          "start": 21.9,
+          "end": 22.45,
+          "conf": 0.9
+        },
+        {
+          "text": "mula",
+          "start": 22.45,
+          "end": 22.78,
+          "conf": 0.88
+        },
+        {
+          "text": "sa",
+          "start": 22.78,
+          "end": 23.0,
+          "conf": 0.92
+        },
+        {
+          "text": "araw.",
+          "start": 23.0,
+          "end": 23.33,
+          "conf": 0.93
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 1067
+    },
+    {
+      "id": "clean-006",
+      "start": 23.85,
+      "end": 26.76,
+      "snrDb": 25.4,
+      "words": [
+        {
+          "text": "At",
+          "start": 23.85,
+          "end": 24.03,
+          "conf": 0.86
+        },
+        {
+          "text": "sa",
+          "start": 24.03,
+          "end": 24.21,
+          "conf": 0.91
+        },
+        {
+          "text": "loob",
+          "start": 24.21,
+          "end": 24.49,
+          "conf": 0.91
+        },
+        {
+          "text": "ng",
+          "start": 24.49,
+          "end": 24.67,
+          "conf": 0.93
+        },
+        {
+          "text": "chloroplast",
+          "start": 24.67,
+          "end": 25.26,
+          "conf": 0.89
+        },
+        {
+          "text": "nangyayari",
+          "start": 25.26,
+          "end": 25.81,
+          "conf": 0.95
+        },
+        {
+          "text": "ang",
+          "start": 25.81,
+          "end": 26.03,
+          "conf": 0.93
+        },
+        {
+          "text": "photosynthesis.",
+          "start": 26.03,
+          "end": 26.76,
+          "conf": 0.84
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 755
+    },
+    {
+      "id": "clean-007",
+      "start": 27.77,
+      "end": 30.28,
+      "snrDb": 20.8,
+      "words": [
+        {
+          "text": "Ang",
+          "start": 27.77,
+          "end": 28.06,
+          "conf": 0.87
+        },
+        {
+          "text": "output",
+          "start": 28.06,
+          "end": 28.51,
+          "conf": 0.89
+        },
+        {
+          "text": "nito",
+          "start": 28.51,
+          "end": 28.85,
+          "conf": 0.88
+        },
+        {
+          "text": "ay",
+          "start": 28.85,
+          "end": 29.08,
+          "conf": 0.9
+        },
+        {
+          "text": "glucose",
+          "start": 29.08,
+          "end": 29.6,
+          "conf": 0.75
+        },
+        {
+          "text": "at",
+          "start": 29.6,
+          "end": 29.82,
+          "conf": 0.86
+        },
+        {
+          "text": "oxygen.",
+          "start": 29.82,
+          "end": 30.28,
+          "conf": 0.76
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 1072
+    },
+    {
+      "id": "clean-008",
+      "start": 30.8,
+      "end": 33.3,
+      "snrDb": 26.6,
+      "words": [
+        {
+          "text": "Kaya",
+          "start": 30.8,
+          "end": 31.08,
+          "conf": 0.97
+        },
+        {
+          "text": "mahalaga",
+          "start": 31.08,
+          "end": 31.55,
+          "conf": 0.99
+        },
+        {
+          "text": "ang",
+          "start": 31.55,
+          "end": 31.79,
+          "conf": 0.92
+        },
+        {
+          "text": "mga",
+          "start": 31.79,
+          "end": 32.03,
+          "conf": 0.92
+        },
+        {
+          "text": "halaman",
+          "start": 32.03,
+          "end": 32.45,
+          "conf": 0.87
+        },
+        {
+          "text": "sa",
+          "start": 32.45,
+          "end": 32.64,
+          "conf": 0.87
+        },
+        {
+          "text": "ating",
+          "start": 32.64,
+          "end": 32.97,
+          "conf": 0.9
+        },
+        {
+          "text": "buhay.",
+          "start": 32.97,
+          "end": 33.3,
+          "conf": 0.89
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 865
+    },
+    {
+      "id": "clean-009",
+      "start": 33.3,
+      "end": 38.81,
+      "snrDb": 26.8,
+      "words": [
+        {
+          "text": "Si",
+          "start": 33.3,
+          "end": 33.56,
+          "conf": 0.95
+        },
+        {
+          "text": "Jan",
+          "start": 33.56,
+          "end": 33.88,
+          "conf": 0.78
+        },
+        {
+          "text": "ang",
+          "start": 34.65,
+          "end": 34.97,
+          "conf": 0.91
+        },
+        {
+          "text": "nakatuklas",
+          "start": 34.97,
+          "end": 35.73,
+          "conf": 0.88
+        },
+        {
+          "text": "na",
+          "start": 35.73,
+          "end": 35.99,
+          "conf": 0.96
+        },
+        {
+          "text": "kailangan",
+          "start": 35.99,
+          "end": 36.7,
+          "conf": 0.93
+        },
+        {
+          "text": "ng",
+          "start": 36.7,
+          "end": 36.95,
+          "conf": 0.96
+        },
+        {
+          "text": "liwanag",
+          "start": 36.95,
+          "end": 37.53,
+          "conf": 0.9
+        },
+        {
+          "text": "sa",
+          "start": 37.53,
+          "end": 37.78,
+          "conf": 0.89
+        },
+        {
+          "text": "prosesong",
+          "start": 37.78,
+          "end": 38.49,
+          "conf": 0.97
+        },
+        {
+          "text": "ito.",
+          "start": 38.49,
+          "end": 38.81,
+          "conf": 0.99
+        }
+      ],
+      "gaps": [
+        {
+          "start": 33.88,
+          "end": 34.65,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "Ingenhousz",
+              "Inhenhaus"
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 945
+    },
+    {
+      "id": "clean-010",
+      "start": 39.95,
+      "end": 41.65,
+      "snrDb": 22.2,
+      "words": [
+        {
+          "text": "Write",
+          "start": 39.95,
+          "end": 40.26,
+          "conf": 0.96
+        },
+        {
+          "text": "that",
+          "start": 40.26,
+          "end": 40.52,
+          "conf": 0.89
+        },
+        {
+          "text": "down",
+          "start": 40.52,
+          "end": 40.78,
+          "conf": 0.93
+        },
+        {
+          "text": "in",
+          "start": 40.78,
+          "end": 40.95,
+          "conf": 0.91
+        },
+        {
+          "text": "your",
+          "start": 40.95,
+          "end": 41.21,
+          "conf": 0.86
+        },
+        {
+          "text": "notebook.",
+          "start": 41.21,
+          "end": 41.65,
+          "conf": 0.86
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 965
+    },
+    {
+      "id": "clean-011",
+      "start": 42.55,
+      "end": 44.58,
+      "snrDb": 27.2,
+      "words": [
+        {
+          "text": "Remember,",
+          "start": 42.55,
+          "end": 42.97,
+          "conf": 0.89
+        },
+        {
+          "text": "walang",
+          "start": 42.97,
+          "end": 43.31,
+          "conf": 0.89
+        },
+        {
+          "text": "araw,",
+          "start": 43.31,
+          "end": 43.56,
+          "conf": 0.89
+        },
+        {
+          "text": "walang",
+          "start": 43.56,
+          "end": 43.9,
+          "conf": 0.89
+        },
+        {
+          "text": "photosynthesis.",
+          "start": 43.9,
+          "end": 44.58,
+          "conf": 0.84
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 701
+    },
+    {
+      "id": "clean-012",
+      "start": 45.47,
+      "end": 51.415515,
+      "snrDb": 21.0,
+      "words": [
+        {
+          "text": "Okay,",
+          "start": 45.47,
+          "end": 45.85,
+          "conf": 0.92
+        },
+        {
+          "text": "any",
+          "start": 45.85,
+          "end": 46.17,
+          "conf": 0.88
+        },
+        {
+          "text": "questions?",
+          "start": 46.17,
+          "end": 46.88,
+          "conf": 0.96
+        },
+        {
+          "text": "Sino",
+          "start": 46.88,
+          "end": 47.26,
+          "conf": 0.9
+        },
+        {
+          "text": "ang",
+          "start": 47.26,
+          "end": 47.58,
+          "conf": 0.96
+        },
+        {
+          "text": "makakapagsabi",
+          "start": 47.58,
+          "end": 48.54,
+          "conf": 0.99
+        },
+        {
+          "text": "kung",
+          "start": 48.54,
+          "end": 48.92,
+          "conf": 0.91
+        },
+        {
+          "text": "saan",
+          "start": 48.92,
+          "end": 49.31,
+          "conf": 0.91
+        },
+        {
+          "text": "nangyayari",
+          "start": 49.31,
+          "end": 50.07,
+          "conf": 0.98
+        },
+        {
+          "text": "ang",
+          "start": 50.07,
+          "end": 50.39,
+          "conf": 0.95
+        },
+        {
+          "text": "photosynthesis?",
+          "start": 50.39,
+          "end": 51.42,
+          "conf": 0.77
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 854
+    },
+    {
+      "id": "clean-013",
+      "start": 52.391127,
+      "end": 54.43,
+      "snrDb": 21.7,
+      "words": [
+        {
+          "text": "Very",
+          "start": 52.39,
+          "end": 52.73,
+          "conf": 0.93
+        },
+        {
+          "text": "good,",
+          "start": 52.73,
+          "end": 53.07,
+          "conf": 0.98
+        },
+        {
+          "text": "Maria!",
+          "start": 53.07,
+          "end": 53.47,
+          "conf": 0.92
+        },
+        {
+          "text": "Sa",
+          "start": 53.47,
+          "end": 53.69,
+          "conf": 0.97
+        },
+        {
+          "text": "chloroplast.",
+          "start": 53.69,
+          "end": 54.43,
+          "conf": 0.87
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 957
+    }
+  ]
+}

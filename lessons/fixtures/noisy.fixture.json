@@ -1,0 +1,827 @@
+{
+  "fixture": "noisy",
+  "timing": "recorded",
+  "confFloor": 0.6,
+  "note": "TranscriptSegment[] per contracts.ts; words below confFloor are already in gaps",
+  "segments": [
+    {
+      "id": "noisy-001",
+      "start": 0.9,
+      "end": 4.97,
+      "snrDb": 6.3,
+      "words": [
+        {
+          "text": "Okay",
+          "start": 0.9,
+          "end": 1.22,
+          "conf": 0.75
+        },
+        {
+          "text": "class,",
+          "start": 1.22,
+          "end": 1.59,
+          "conf": 0.63
+        },
+        {
+          "text": "good",
+          "start": 1.59,
+          "end": 1.9,
+          "conf": 0.84
+        },
+        {
+          "text": "morning.",
+          "start": 1.9,
+          "end": 2.38,
+          "conf": 0.62
+        },
+        {
+          "text": "pag-aaralan",
+          "start": 2.8,
+          "end": 3.49,
+          "conf": 0.64
+        },
+        {
+          "text": "natin",
+          "start": 3.49,
+          "end": 3.86,
+          "conf": 0.62
+        },
+        {
+          "text": "ang",
+          "start": 3.86,
+          "end": 4.12,
+          "conf": 0.83
+        }
+      ],
+      "gaps": [
+        {
+          "start": 2.38,
+          "end": 2.8,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "Ngayon,"
+            ]
+          }
+        },
+        {
+          "start": 4.12,
+          "end": 4.97,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "photosynthesis."
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 1352
+    },
+    {
+      "id": "noisy-002",
+      "start": 5.73,
+      "end": 10.43,
+      "snrDb": 6.4,
+      "words": [
+        {
+          "text": "Ang",
+          "start": 5.73,
+          "end": 5.96,
+          "conf": 0.63
+        },
+        {
+          "text": "ay",
+          "start": 6.69,
+          "end": 6.87,
+          "conf": 0.68
+        },
+        {
+          "text": "proseso",
+          "start": 7.1,
+          "end": 7.51,
+          "conf": 0.69
+        },
+        {
+          "text": "kung",
+          "start": 7.51,
+          "end": 7.78,
+          "conf": 0.75
+        },
+        {
+          "text": "saan",
+          "start": 7.78,
+          "end": 8.06,
+          "conf": 0.84
+        },
+        {
+          "text": "ng",
+          "start": 8.51,
+          "end": 8.7,
+          "conf": 0.84
+        },
+        {
+          "text": "sariling",
+          "start": 8.7,
+          "end": 9.15,
+          "conf": 0.77
+        },
+        {
+          "text": "pagkain",
+          "start": 9.15,
+          "end": 9.56,
+          "conf": 0.68
+        },
+        {
+          "text": "ang",
+          "start": 9.56,
+          "end": 9.79,
+          "conf": 0.75
+        },
+        {
+          "text": "mga",
+          "start": 9.79,
+          "end": 10.02,
+          "conf": 0.66
+        },
+        {
+          "text": "halaman.",
+          "start": 10.02,
+          "end": 10.43,
+          "conf": 0.61
+        }
+      ],
+      "gaps": [
+        {
+          "start": 5.96,
+          "end": 6.69,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "photosynthesis"
+            ]
+          }
+        },
+        {
+          "start": 6.87,
+          "end": 7.1,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "ang"
+            ]
+          }
+        },
+        {
+          "start": 8.06,
+          "end": 8.51,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "gumagawa"
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 1948
+    },
+    {
+      "id": "noisy-002b",
+      "start": 10.48,
+      "end": 10.68,
+      "snrDb": 9.0,
+      "words": [],
+      "gaps": [
+        {
+          "start": 10.48,
+          "end": 10.68,
+          "reason": {
+            "kind": "too_short"
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 400
+    },
+    {
+      "id": "noisy-003",
+      "start": 11.15,
+      "end": 15.8,
+      "snrDb": 3.2,
+      "words": [],
+      "gaps": [
+        {
+          "start": 11.15,
+          "end": 15.8,
+          "reason": {
+            "kind": "snr_below_threshold"
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 0
+    },
+    {
+      "id": "noisy-004",
+      "start": 16.48,
+      "end": 20.15,
+      "snrDb": 7.5,
+      "words": [
+        {
+          "text": "Ang",
+          "start": 16.48,
+          "end": 16.75,
+          "conf": 0.75
+        },
+        {
+          "text": "chlorophyll",
+          "start": 16.75,
+          "end": 17.44,
+          "conf": 0.67
+        },
+        {
+          "text": "magbibigay",
+          "start": 17.7,
+          "end": 18.34,
+          "conf": 0.78
+        },
+        {
+          "text": "ng",
+          "start": 18.34,
+          "end": 18.55,
+          "conf": 0.68
+        },
+        {
+          "text": "kulay",
+          "start": 18.55,
+          "end": 18.93,
+          "conf": 0.82
+        },
+        {
+          "text": "berde",
+          "start": 18.93,
+          "end": 19.3,
+          "conf": 0.75
+        },
+        {
+          "text": "sa",
+          "start": 19.3,
+          "end": 19.51,
+          "conf": 0.86
+        },
+        {
+          "text": "dahon.",
+          "start": 19.78,
+          "end": 20.15,
+          "conf": 0.82
+        }
+      ],
+      "gaps": [
+        {
+          "start": 17.44,
+          "end": 17.7,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "ang"
+            ]
+          }
+        },
+        {
+          "start": 19.51,
+          "end": 19.78,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "mga"
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 1700
+    },
+    {
+      "id": "noisy-005",
+      "start": 20.15,
+      "end": 23.33,
+      "snrDb": 7.1,
+      "words": [
+        {
+          "text": "Kinukuha",
+          "start": 20.15,
+          "end": 20.7,
+          "conf": 0.7
+        },
+        {
+          "text": "ng",
+          "start": 20.7,
+          "end": 20.92,
+          "conf": 0.73
+        },
+        {
+          "text": "chlorophyll",
+          "start": 20.92,
+          "end": 21.63,
+          "conf": 0.62
+        },
+        {
+          "text": "ang",
+          "start": 21.63,
+          "end": 21.9,
+          "conf": 0.81
+        },
+        {
+          "text": "enerhiya",
+          "start": 21.9,
+          "end": 22.45,
+          "conf": 0.77
+        },
+        {
+          "text": "mula",
+          "start": 22.45,
+          "end": 22.78,
+          "conf": 0.6
+        },
+        {
+          "text": "sa",
+          "start": 22.78,
+          "end": 23.0,
+          "conf": 0.84
+        },
+        {
+          "text": "araw.",
+          "start": 23.0,
+          "end": 23.33,
+          "conf": 0.6
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 1477
+    },
+    {
+      "id": "noisy-006",
+      "start": 23.85,
+      "end": 26.76,
+      "snrDb": 8.4,
+      "words": [
+        {
+          "text": "At",
+          "start": 23.85,
+          "end": 24.03,
+          "conf": 0.64
+        },
+        {
+          "text": "ng",
+          "start": 24.49,
+          "end": 24.67,
+          "conf": 0.65
+        },
+        {
+          "text": "chloroplast",
+          "start": 24.67,
+          "end": 25.26,
+          "conf": 0.64
+        },
+        {
+          "text": "nangyayari",
+          "start": 25.26,
+          "end": 25.81,
+          "conf": 0.75
+        },
+        {
+          "text": "ang",
+          "start": 25.81,
+          "end": 26.03,
+          "conf": 0.73
+        },
+        {
+          "text": "photosynthesis.",
+          "start": 26.03,
+          "end": 26.76,
+          "conf": 0.62
+        }
+      ],
+      "gaps": [
+        {
+          "start": 24.03,
+          "end": 24.49,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "sa"
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 1290
+    },
+    {
+      "id": "noisy-007",
+      "start": 27.77,
+      "end": 30.28,
+      "snrDb": 8.8,
+      "words": [
+        {
+          "text": "Ang",
+          "start": 27.77,
+          "end": 28.06,
+          "conf": 0.61
+        },
+        {
+          "text": "output",
+          "start": 28.06,
+          "end": 28.51,
+          "conf": 0.79
+        },
+        {
+          "text": "nito",
+          "start": 28.51,
+          "end": 28.85,
+          "conf": 0.74
+        },
+        {
+          "text": "ay",
+          "start": 28.85,
+          "end": 29.08,
+          "conf": 0.71
+        }
+      ],
+      "gaps": [
+        {
+          "start": 29.08,
+          "end": 30.28,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "glucose"
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 1136
+    },
+    {
+      "id": "noisy-007b",
+      "start": 30.33,
+      "end": 30.53,
+      "snrDb": 9.0,
+      "words": [],
+      "gaps": [
+        {
+          "start": 30.33,
+          "end": 30.53,
+          "reason": {
+            "kind": "too_short"
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 400
+    },
+    {
+      "id": "noisy-008",
+      "start": 30.8,
+      "end": 33.3,
+      "snrDb": 9.9,
+      "words": [
+        {
+          "text": "Kaya",
+          "start": 30.8,
+          "end": 31.08,
+          "conf": 0.74
+        },
+        {
+          "text": "mahalaga",
+          "start": 31.08,
+          "end": 31.55,
+          "conf": 0.85
+        },
+        {
+          "text": "mga",
+          "start": 31.79,
+          "end": 32.03,
+          "conf": 0.73
+        },
+        {
+          "text": "buhay.",
+          "start": 32.97,
+          "end": 33.3,
+          "conf": 0.72
+        }
+      ],
+      "gaps": [
+        {
+          "start": 31.55,
+          "end": 31.79,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "ang"
+            ]
+          }
+        },
+        {
+          "start": 32.03,
+          "end": 32.97,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "halaman"
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 1086
+    },
+    {
+      "id": "noisy-009",
+      "start": 33.3,
+      "end": 38.81,
+      "snrDb": 4.9,
+      "words": [],
+      "gaps": [
+        {
+          "start": 33.3,
+          "end": 38.81,
+          "reason": {
+            "kind": "snr_below_threshold"
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 0
+    },
+    {
+      "id": "noisy-010",
+      "start": 39.95,
+      "end": 41.65,
+      "snrDb": 11.8,
+      "words": [
+        {
+          "text": "Write",
+          "start": 39.95,
+          "end": 40.26,
+          "conf": 0.82
+        },
+        {
+          "text": "that",
+          "start": 40.26,
+          "end": 40.52,
+          "conf": 0.63
+        },
+        {
+          "text": "down",
+          "start": 40.52,
+          "end": 40.78,
+          "conf": 0.75
+        },
+        {
+          "text": "notebook.",
+          "start": 41.21,
+          "end": 41.65,
+          "conf": 0.68
+        }
+      ],
+      "gaps": [
+        {
+          "start": 40.78,
+          "end": 41.21,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "in"
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 1064
+    },
+    {
+      "id": "noisy-011",
+      "start": 42.55,
+      "end": 44.58,
+      "snrDb": 11.5,
+      "words": [
+        {
+          "text": "Remember,",
+          "start": 42.55,
+          "end": 42.97,
+          "conf": 0.67
+        },
+        {
+          "text": "walang",
+          "start": 42.97,
+          "end": 43.31,
+          "conf": 0.61
+        },
+        {
+          "text": "walang",
+          "start": 43.56,
+          "end": 43.9,
+          "conf": 0.78
+        }
+      ],
+      "gaps": [
+        {
+          "start": 43.31,
+          "end": 43.56,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "araw,"
+            ]
+          }
+        },
+        {
+          "start": 43.9,
+          "end": 44.58,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "photosynthesis."
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 1308
+    },
+    {
+      "id": "noisy-012",
+      "start": 45.47,
+      "end": 51.415515,
+      "snrDb": 10.4,
+      "words": [
+        {
+          "text": "Okay,",
+          "start": 45.47,
+          "end": 45.85,
+          "conf": 0.66
+        },
+        {
+          "text": "any",
+          "start": 45.85,
+          "end": 46.17,
+          "conf": 0.66
+        },
+        {
+          "text": "questions?",
+          "start": 46.17,
+          "end": 46.88,
+          "conf": 0.68
+        },
+        {
+          "text": "Sino",
+          "start": 46.88,
+          "end": 47.26,
+          "conf": 0.64
+        },
+        {
+          "text": "ang",
+          "start": 47.26,
+          "end": 47.58,
+          "conf": 0.7
+        },
+        {
+          "text": "makakapagsabi",
+          "start": 47.58,
+          "end": 48.54,
+          "conf": 0.77
+        },
+        {
+          "text": "saan",
+          "start": 48.92,
+          "end": 49.31,
+          "conf": 0.78
+        },
+        {
+          "text": "nangyayari",
+          "start": 49.31,
+          "end": 50.07,
+          "conf": 0.74
+        },
+        {
+          "text": "ang",
+          "start": 50.07,
+          "end": 50.39,
+          "conf": 0.86
+        }
+      ],
+      "gaps": [
+        {
+          "start": 48.54,
+          "end": 48.92,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "kung"
+            ]
+          }
+        },
+        {
+          "start": 50.39,
+          "end": 51.42,
+          "reason": {
+            "kind": "low_confidence",
+            "alternatives": [
+              "photosynthesis?"
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 1110
+    },
+    {
+      "id": "noisy-013",
+      "start": 52.391127,
+      "end": 54.43,
+      "snrDb": 11.0,
+      "words": [
+        {
+          "text": "Very",
+          "start": 52.39,
+          "end": 52.73,
+          "conf": 0.79
+        },
+        {
+          "text": "good,",
+          "start": 52.73,
+          "end": 53.07,
+          "conf": 0.75
+        },
+        {
+          "text": "Maria!",
+          "start": 53.07,
+          "end": 53.47,
+          "conf": 0.61
+        },
+        {
+          "text": "Sa",
+          "start": 53.47,
+          "end": 53.69,
+          "conf": 0.79
+        },
+        {
+          "text": "chloroplast.",
+          "start": 53.69,
+          "end": 54.43,
+          "conf": 0.63
+        }
+      ],
+      "gaps": [],
+      "engine": "fixture",
+      "latencyMs": 1024
+    },
+    {
+      "id": "noisy-loop-1",
+      "start": 55.43,
+      "end": 57.93,
+      "snrDb": 7.5,
+      "words": [],
+      "gaps": [
+        {
+          "start": 55.43,
+          "end": 57.93,
+          "reason": {
+            "kind": "repetition_suppressed",
+            "alternatives": [
+              "Salamat po. Salamat po. Salamat po."
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 400
+    },
+    {
+      "id": "noisy-loop-2",
+      "start": 58.43,
+      "end": 60.93,
+      "snrDb": 7.5,
+      "words": [],
+      "gaps": [
+        {
+          "start": 58.43,
+          "end": 60.93,
+          "reason": {
+            "kind": "repetition_suppressed",
+            "alternatives": [
+              "Thank you. Thank you. Thank you."
+            ]
+          }
+        }
+      ],
+      "engine": "fixture",
+      "latencyMs": 400
+    }
+  ],
+  "snrGateDb": 6.0
+}

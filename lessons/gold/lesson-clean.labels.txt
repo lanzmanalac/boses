@@ -1,0 +1,13 @@
+0.900000	4.970000	[MIX] Okay class, good morning. Ngayon, pag-aaralan natin ang photosynthesis.
+5.730000	10.430000	[MIX] Ang photosynthesis ay ang proseso kung saan gumagawa ng sariling pagkain ang mga halaman.
+11.150000	15.800000	[EN] Plants need three things: sunlight, water, and carbon dioxide.
+16.480000	20.150000	[MIX] Ang chlorophyll ang magbibigay ng kulay berde sa mga dahon.
+20.150000	23.330000	[MIX] Kinukuha ng chlorophyll ang enerhiya mula sa araw.
+23.850000	26.760000	[MIX] At sa loob ng chloroplast nangyayari ang photosynthesis.
+27.770000	30.280000	[MIX] Ang output nito ay glucose at oxygen.
+30.800000	33.300000	[TL] Kaya mahalaga ang mga halaman sa ating buhay.
+33.300000	38.810000	[TL] Si Jan Ingenhousz ang nakatuklas na kailangan ng liwanag sa prosesong ito.
+39.950000	41.650000	[EN] Write that down in your notebook.
+42.550000	44.580000	[MIX] Remember, walang araw, walang photosynthesis.
+45.470000	51.415515	[MIX] Okay, any questions? Sino ang makakapagsabi kung saan nangyayari ang photosynthesis?
+52.391127	54.430000	[MIX] Very good, Maria! Sa chloroplast.
