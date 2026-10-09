@@ -31,10 +31,10 @@ export const SAMPLE_RATE = 16000;
 export const FRAME = 320; // 20 ms
 
 export const DEFAULTS = Object.freeze({
-  snrThresholdDb: 12,       // measured: lesson speech 18-38 dB, classroom babble 7-11 dB
+  snrThresholdDb: 16,       // measured: all 13 real lines pass; 10 dB mix (ASR ~100% wrong) mostly gated; babble 7-11 dB
   startMarginDb: 9,         // frame this far above the floor starts an utterance
   stopMarginDb: 5,          // ...and below this ends it (hysteresis)
-  hangoverSec: 0.35,        // silence needed to close an utterance; shorter dips merge
+  hangoverSec: 0.5,         // measured: 0.35 cut lines at commas; 0.5 cut whisper-base WER 62%->46% (clean)
   preRollSec: 0.2,          // audio kept before onset so first syllables aren't clipped
   postRollSec: 0.15,
   minSpeechSec: 0.3,        // shorter -> too_short

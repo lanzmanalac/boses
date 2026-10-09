@@ -36,7 +36,7 @@ Reads `gold/lesson-clean.labels.txt` (real recording) if it exists, otherwise `s
 python3 lessons/sweep/make_sweep.py
 ```
 
-SNR = speech power inside the labelled lines vs. mean power of `sample/noise-only.wav` (looped, 50 ms crossfade at each seam). Re-measured from the output files: 20.00 / 10.00 / 5.00 / 0.00 dB, no clipping. Measured with the 12 dB gate in `web/noise.js`: lines reaching the decoder are 13/13 at 20 dB, 11/13 at 10 dB, 4/13 at 5 dB, 0/13 at 0 dB — the rest become `snr_below_threshold` gaps. Model results: `docs/P2-audio-capture.md`.
+SNR = speech power inside the labelled lines vs. mean power of `sample/noise-only.wav` (looped, 50 ms crossfade at each seam). Re-measured from the output files: 20.00 / 10.00 / 5.00 / 0.00 dB, no clipping. With the confirmed 16 dB gate in `web/noise.js`, lines reaching the decoder are 13/13 at 20 dB, 3/13 at 10 dB, 0/13 at 5 and 0 dB — the rest become `snr_below_threshold` gaps. Per-segment detail: `GATE-REPORT.md` (`node lessons/tools/gate-report.mjs`). Model results: `docs/P2-audio-capture.md`.
 
 ## Recording (P2)
 
