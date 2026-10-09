@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-contrast="high">
+<html lang="en" data-theme="paper" data-contrast="standard">
 <head>
 <meta charset="utf-8">
 <!-- viewport-fit=cover so the safe-area insets in styles.css do something on
@@ -8,9 +8,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Boses — live Taglish captions</title>
 <meta name="description" content="On-device live captions for a Filipino classroom lesson, with visible gaps instead of guesses, and a printable study sheet at the end.">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#F6F2EA">
 <link rel="manifest" href="./manifest.webmanifest">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light dark">
 <link rel="stylesheet" href="./styles.css">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 </head>
@@ -18,32 +18,112 @@
 <div class="app">
 
   <!-- ── header ─────────────────────────────────────────────────────────── -->
+  <!-- The bracket is the logo: the product is a visible hole where words
+       should be, and [ ] is that idea. It echoes through the wordmark, the
+       gap treatment, the chips and the favicon. -->
   <header class="bar no-print">
-    <h1 class="brand">Boses<small>Live captions · on-device</small></h1>
-    <div class="hud" id="hud"></div>
+    <!-- Not an <h1>: this is the product mark, not a document heading. Each view
+       (setup / sessions) owns the page's single h1, so the outline stays
+       hierarchical. translate="no" stops browsers machine-translating a
+       proper noun. -->
+  <p class="brand" translate="no"><span class="mark">[</span>Boses<span class="mark">]</span><small>On-device captions · nothing leaves this device</small></p>
+    <button class="btn settings-btn" id="settings-btn"
+            aria-haspopup="dialog" aria-controls="settings-panel">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M16 4v4M8 12v0M8 16v4"/></svg>
+      Display
+    </button>
+    <button class="btn settings-btn" id="sessions-btn">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      Saved lessons
+    </button>
   </header>
 
-  <!-- ── presentation controls ──────────────────────────────────────────── -->
-  <div class="controls no-print" role="group" aria-label="Display settings">
-    <label class="control">
-      <span>Type size</span>
-      <input type="range" id="type-scale" min="0.85" max="2.4" step="0.05"
-             value="1" aria-label="Caption type size">
-      <output id="type-scale-out">100%</output>
-    </label>
+  <!-- ── the honesty strip ────────────────────────────────────────────────
+       Always visible. Answers continuously: is the app failing, or is the
+       room loud? Without it a student cannot tell a bug from a bad
+       classroom — both look identical, which is to say: captions stop. -->
+  <div class="hud no-print" id="hud"></div>
 
-    <button class="btn" id="contrast-toggle" aria-pressed="true">
-      Contrast: high
-    </button>
+  <!-- ── pre-flight ───────────────────────────────────────────────────────
+       This did not exist and it is the first thing a student sees. "No
+       setup wizard" in Boses.md means no account and no config form — not no
+       explanation. -->
+  <section class="setup no-print" id="setup">
+    <h1>Follow a lesson you can hear.</h1>
+    <p class="lede">Boses captions your teacher on this device, marks the parts
+      it could not hear clearly, and gives you the lesson on paper at the end.</p>
 
-    <button class="btn" id="follow-toggle" aria-pressed="true">
-      Follow newest: on
-    </button>
-  </div>
+    <p class="callout"><strong>Read this once.</strong> The recogniser here does
+      not report per-word confidence, so text it shows is <em>unverified</em> —
+      it passed an audio-quality check, not a correctness check. Marked gaps
+      mean “this part was not reliably captured”. A clear-looking sentence can
+      still be wrong.</p>
 
-  <!-- ── caption stage ──────────────────────────────────────────────────── -->
-  <!-- id="stage": the end-class handler looks this up to swap caption view for
-       the study sheet. Without it, $('stage') is null and End class throws. -->
+    <div class="setup-step" id="step-model">
+      <span class="step-num" aria-hidden="true"><span>1</span></span>
+      <h2>Model</h2>
+      <p>Downloaded once. The first run needs about 40&nbsp;MB; every class
+        after that works with the network switched off.</p>
+      <div class="progress" id="model-progress" aria-hidden="true"><i></i></div>
+      <p id="model-note">Checking…</p>
+    </div>
+
+    <div class="setup-step" id="step-mic">
+      <span class="step-num" aria-hidden="true"><span>2</span></span>
+      <h2>Microphone</h2>
+      <p>Boses will ask for microphone access when you start. Put the device on
+        the desk, closest to the teacher you can manage.</p>
+    </div>
+
+    <div class="setup-step" id="step-room">
+      <span class="step-num" aria-hidden="true"><span>3</span></span>
+      <h2>Room</h2>
+      <p>For the first few seconds Boses learns how loud this room is, so it
+        knows the difference between a teacher and the noise around them.
+        Hold still and let it listen.</p>
+    </div>
+
+    <div class="setup-step" id="step-vocab">
+      <span class="step-num" aria-hidden="true"><span>4</span></span>
+      <h2>Lesson vocabulary</h2>
+      <p>Seeding the recogniser with today's terms is what stops a proper noun
+        being heard as something else. Loaded automatically when a lesson file
+        is present.</p>
+      <ul class="vocab-list" id="vocab-list"></ul>
+    </div>
+
+    <div class="setup-actions">
+      <button class="btn btn-primary" id="setup-start">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        Start lesson
+      </button>
+    </div>
+  </section>
+
+  <!-- ── sessions / history ───────────────────────────────────────────────
+       store.js already exposes getSession and deleteAllSessions. Only the UI
+       was missing. Deletion is a demo beat and must state its consequence. -->
+  <section class="sessions no-print" id="sessions" hidden>
+    <h1>Saved lessons</h1>
+    <p class="sessions-lede">Everything stays on this device. There is no
+      account, no cloud, and no second copy — so deleting a lesson is
+      permanent.</p>
+    <div id="session-list"></div>
+    <div class="setup-actions">
+      <button class="btn" id="sessions-back">Back</button>
+      <button class="btn btn-danger" id="delete-all">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>
+        Delete all lessons
+      </button>
+    </div>
+  </section>
+
+  <!-- ── caption stage ────────────────────────────────────────────────────
+       id="stage": the end-class handler looks this up to swap caption view for
+       the study sheet. Without it, $('stage') is null and End class throws.
+       id="captions" and [data-seg="<id>"] are the DOM contract: captions.js
+       uses [data-seg] + offsetTop to flag the segment the reader is actually
+       looking at. See design/SPEC.md §8. -->
   <main class="stage" id="stage">
     <div class="captions" id="captions"></div>
 
@@ -54,8 +134,11 @@
 
   <!-- ── study sheet (hidden until End class) ───────────────────────────── -->
   <section class="sheet-view" id="sheet-view" hidden>
-    <div class="sheet-actions no-print" style="padding:1rem;display:flex;gap:.75rem;flex-wrap:wrap">
-      <button class="btn btn-primary" id="print-btn">Print / save as PDF</button>
+    <div class="sheet-actions no-print">
+      <button class="btn btn-primary" id="print-btn">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3h10v6M7 18H5v-7h14v7h-2M7 14h10v7H7z"/></svg>
+        Print / save as PDF
+      </button>
       <button class="btn" id="back-btn">Back to captions</button>
       <span class="status" id="sheet-status"></span>
     </div>
@@ -63,13 +146,72 @@
   </section>
 
   <!-- ── bottom bar ─────────────────────────────────────────────────────── -->
-  <footer class="foot no-print">
-    <button class="btn" id="flag-btn">I missed this</button>
-    <button class="btn" id="start-btn">Start lesson</button>
-    <button class="btn" id="end-btn" disabled>End class → sheet</button>
+  <footer class="foot no-print" id="foot">
+    <button class="btn" id="flag-btn" disabled>
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v18M6 4h12l-3 4 3 4H6"/></svg>
+      I missed this
+    </button>
+    <button class="btn btn-primary" id="start-btn">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+      Start lesson
+    </button>
+    <button class="btn" id="end-btn" disabled>
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v16h-6M10 8l4 4-4 4M4 4v16"/></svg>
+      End class → sheet
+    </button>
     <span class="spacer"></span>
     <span class="status" id="status" role="status" aria-live="polite"></span>
   </footer>
+
+  <p class="no-print" id="flag-hint" hidden
+     style="padding:0 var(--space-5) var(--space-3);margin:0;font-size:var(--step--1);color:var(--fg-muted);">
+    Tap while the part you missed is on screen — it goes on tomorrow’s sheet.
+  </p>
+</div>
+
+<!-- ── settings sheet ──────────────────────────────────────────────────────
+     Chrome recedes during a lesson. The student needs the captions and two
+     actions; nothing else earns permanent space. -->
+<div class="scrim no-print" id="scrim" hidden></div>
+<div class="sheet-panel no-print" id="settings-panel" role="dialog"
+     aria-modal="true" aria-label="Display settings" hidden>
+  <h2>Display</h2>
+
+  <label class="setting">
+    <span>Type size</span>
+    <input type="range" id="type-scale" min="0.85" max="2.4" step="0.05"
+           value="1" aria-label="Caption and interface type size">
+    <output id="type-scale-out">100%</output>
+  </label>
+
+  <div class="setting">
+    <span>Theme</span>
+    <div class="setting-group" role="group" aria-label="Theme">
+      <button class="btn" id="theme-paper"  aria-pressed="true">Paper</button>
+      <button class="btn" id="theme-dimmed" aria-pressed="false">Dimmed</button>
+    </div>
+  </div>
+
+  <div class="setting">
+    <span>Contrast</span>
+    <div class="setting-group" role="group" aria-label="Contrast">
+      <button class="btn" id="contrast-toggle" aria-pressed="false">
+        Maximum separation
+      </button>
+    </div>
+  </div>
+
+  <div class="setting">
+    <span>Follow newest</span>
+    <div class="setting-group" role="group" aria-label="Follow newest">
+      <button class="btn" id="follow-toggle" aria-pressed="true">On</button>
+    </div>
+  </div>
+
+  <div class="setting">
+    <span>&nbsp;</span>
+    <button class="btn" id="settings-close">Close</button>
+  </div>
 </div>
 
 <script type="module">
@@ -86,6 +228,21 @@ import { StudySheet, deriveCoverage } from './sheet.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg; };
+
+// ── failure surface ─────────────────────────────────────────────────────────
+// A dead button with no explanation is the worst possible state for this
+// product: the student cannot tell a bug from their own mistake, and a demo
+// on stage has no time for devtools. Any uncaught error is reported in the
+// status line instead of failing silently. This is also how a broken build
+// announces itself rather than looking like a design problem.
+addEventListener('error', (e) => {
+  console.error('[boses]', e.error ?? e.message);
+  status(`Error: ${e.message ?? e.error}. Captions may be unavailable.`);
+});
+addEventListener('unhandledrejection', (e) => {
+  console.error('[boses] unhandled rejection', e.reason);
+  status(`Error: ${e.reason?.message ?? e.reason}`);
+});
 
 const presentation = new Presentation();
 const captions = new CaptionRenderer($('captions'));
@@ -115,49 +272,27 @@ let bridge = null;   // { onSegment } from connectCapture
 // ── P4 and P2 modules ───────────────────────────────────────────────────────
 // These are the post-class pass and the noise gate. Each is optional at
 // startup: if one is missing the feature degrades rather than the app dying.
-// Everything is resolved lazily and failure is reported in the status line.
+//
+// THEY ARE LOADED LAZILY, INSIDE boot() AT THE BOTTOM OF THIS FILE.
+//
+// They used to be top-level `await`s here. That was the single worst bug in
+// the project: a module-level `await fetch(...)` suspends the ENTIRE module,
+// so if that fetch never settles — a slow host, a path outside the service
+// worker scope, airplane mode — no listener is ever attached and every button
+// in the app is dead. No error, no console message, a HUD that renders from
+// its own constructor and then just sits there. This is precisely the failure
+// an offline-first product cannot ship with, so all data loading now happens
+// AFTER the UI is fully wired, and each step has a timeout.
 let confidence = null;   // P4 gateSegment + deriveCoverage + UNVERIFIED_LABEL
 let taglish = null;      // P4 tagSegment
 let vocabMod = null;     // P4 extractVocab
 let summaryMod = null;   // P4 buildSummary
 let hotwords = [];       // P2 per-lesson vocabulary list
 
-for (const [name, load] of [
-  ['confidence', () => import('./confidence.js')],
-  ['taglish', () => import('./taglish.js')],
-  ['vocab', () => import('./vocab.js')],
-  ['summary', () => import('./summary.js')],
-]) {
-  try {
-    const mod = await load();
-    if (name === 'confidence') confidence = mod;
-    if (name === 'taglish') taglish = mod;
-    if (name === 'vocab') vocabMod = mod;
-    if (name === 'summary') summaryMod = mod;
-  } catch {
-    console.warn(`[boses] ${name}.js not available`);
-  }
-}
-
-// P2's hotword list. P1's engine biases decoding toward these, which is how
-// 'chlorophyll' stops being heard as 'chlorine'. Sent to the engine, never to
-// the UI — the UI must not substitute a term the speaker never said.
-try {
-  const res = await fetch('../lessons/hotwords/lesson.txt');
-  if (res.ok) {
-    hotwords = (await res.text()).split('\n').map((w) => w.trim().toLowerCase()).filter(Boolean);
-  }
-} catch { /* no hotword file; the engine simply runs without biasing */ }
-
 // ── flags ───────────────────────────────────────────────────────────────────
 // Route through P4's store when it exists; fall back to in-memory so the
-// feature is never silently absent.
+// feature is never silently absent. Loaded in boot() — see the note above.
 let store = null;
-try {
-  store = await import('./store.js');
-} catch {
-  status('Local storage module not merged yet — this session is in memory only.');
-}
 
 function persistFlags(flags) {
   try { store?.saveFlags?.(session.id, flags); } catch { /* non-fatal */ }
@@ -189,38 +324,48 @@ try {
   if (!q && Number.isFinite(saved) && saved > 0) gateSnrThresholdDb = saved;
 } catch { /* no storage */ }
 
+// ADR-0002 is still open: P1's engine exposes no per-word confidence. A gap
+// means "not reliably captured", NOT "the model was unsure". The HUD says so
+// persistently rather than leaving it to fine print on the sheet.
+const unverified = () => engine?.supportsWordConfidence !== true;
+
+function renderHud(extra = {}) {
+  hud.render({
+    online: navigator.onLine,
+    capturing,
+    engine: engine?.id ?? 'fixture',
+    unverified: unverified(),
+    ...extra,
+  });
+}
+
+// The engine is loaded in boot() below, never awaited at module scope. The UI
+// is fully wired and interactive before any of this starts, so a slow or
+// missing engine can degrade the caption quality — it can never leave the
+// student staring at dead buttons.
 if (wantsFixture) {
-  try {
-    engine = (await import('./engine-select.js')).default;
-    await engine.init?.();
-    const id = engine?.id ?? 'fixture';
-    $('start-btn').textContent = 'Play recorded lesson';
-    status(`Fixture mode — playing recorded segments via ${id}. Not live. No microphone.`);
-    hud.render({ online: navigator.onLine, capturing: false, engine: id });
-  } catch (err) {
-    console.warn('engine-select unavailable', err);
-    status('Fixture engine not merged yet — shell is running, captions are idle.');
-    hud.render({ online: navigator.onLine, capturing: false,
-                 note: 'Fixture engine not available yet (engine-select.js)' });
-  }
+  $('start-btn').textContent = 'Play recorded lesson';
+  $('setup-start').textContent = 'Play recorded lesson';
+  renderHud({ capturing: false });
 } else {
-  // Live path. Import capture/noise up front so a missing module is a clear
-  // message, not a dead Start button.
-  try {
-    const cap = await import('./capture.js');
-    captureModule = cap;
-    engine = (await import('./engine-select.js')).default;
-    const id = engine?.id ?? 'whisper';
-    $('start-btn').textContent = 'Start lesson (live mic)';
-    status('Live mode — first run downloads the model (~40 MB). Pre-download before a demo.');
-    hud.render({ online: navigator.onLine, capturing: false, engine: id });
-  } catch (err) {
-    console.warn('live path unavailable', err);
-    $('start-btn').disabled = true;
-    status('Live capture unavailable. Add ?fixture=1 to play recorded segments instead.');
-    hud.render({ online: navigator.onLine, capturing: false,
-                 note: `Live path unavailable: ${err.message}` });
-  }
+  $('start-btn').textContent = 'Start lesson (live mic)';
+  $('setup-start').textContent = 'Start lesson (live mic)';
+  renderHud({ capturing: false });
+}
+
+// ── states ──────────────────────────────────────────────────────────────────
+// Pre-flight → live → sessions. Chrome recedes as the lesson runs: the
+// student needs the captions and two actions, nothing else.
+function showState(name) {
+  $('setup').hidden = name !== 'setup';
+  $('sessions').hidden = name !== 'sessions';
+  // The caption area only appears once a lesson is running. Before that the
+  // pre-flight owns the whole screen — showing both duplicates the explanation
+  // and pushes the start button below the fold on a phone.
+  $('stage').hidden = name !== 'live';
+  $('sheet-view').hidden = name !== 'sheet';
+  $('foot').hidden = name === 'sessions' || name === 'sheet';
+  $('flag-hint').hidden = !(name === 'live' && started);
 }
 
 // ── controls ────────────────────────────────────────────────────────────────
@@ -237,16 +382,32 @@ scaleInput.addEventListener('input', () => {
   $('type-scale-out').value = `${Math.round(v * 100)}%`;
 });
 
+// Theme is separate from contrast: theme is paper vs dimmed, contrast is the
+// maximum-separation override on top of either.
+function applyTheme() {
+  document.documentElement.dataset.theme = presentation.getTheme();
+  $('theme-paper').setAttribute('aria-pressed',
+    String(presentation.getTheme() === 'paper'));
+  $('theme-dimmed').setAttribute('aria-pressed',
+    String(presentation.getTheme() === 'dimmed'));
+  document.querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', presentation.getTheme() === 'paper' ? '#F6F2EA' : '#1C1A17');
+}
+$('theme-paper').addEventListener('click', () => { presentation.setTheme('paper'); applyTheme(); });
+$('theme-dimmed').addEventListener('click', () => { presentation.setTheme('dimmed'); applyTheme(); });
+
 $('contrast-toggle').addEventListener('click', (e) => {
-  const c = presentation.toggleContrast();
-  e.currentTarget.textContent = `Contrast: ${c}`;
-  e.currentTarget.setAttribute('aria-pressed', String(c === 'high'));
+  const on = presentation.toggleContrast();
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+  status(on
+    ? 'Maximum separation on — pure black on white, for low vision or a bright room.'
+    : 'Maximum separation off.');
 });
 
 $('follow-toggle').addEventListener('click', (e) => {
   const on = !(e.currentTarget.getAttribute('aria-pressed') === 'true');
   e.currentTarget.setAttribute('aria-pressed', String(on));
-  e.currentTarget.textContent = `Follow newest: ${on ? 'on' : 'off'}`;
+  e.currentTarget.textContent = on ? 'On' : 'Off';
   if (on) captions.scrollToLatest();
 });
 
@@ -264,14 +425,81 @@ $('flag-btn').addEventListener('click', () => {
   status(`Flagged ${formatClock(span.start)} — it will be on the sheet.`);
 });
 
+// ── settings sheet ──────────────────────────────────────────────────────────
+
+let lastFocus = null;
+const openSettings = () => {
+  lastFocus = document.activeElement;
+  $('scrim').hidden = false;
+  $('settings-panel').hidden = false;
+  $('settings-close').focus();
+};
+const closeSettings = () => {
+  $('scrim').hidden = true;
+  $('settings-panel').hidden = true;
+  lastFocus?.focus?.();
+};
+$('settings-btn').addEventListener('click', openSettings);
+$('settings-close').addEventListener('click', closeSettings);
+$('scrim').addEventListener('click', closeSettings);
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('settings-panel').hidden) closeSettings();
+});
+
+// ── sessions ────────────────────────────────────────────────────────────────
+
+$('sessions-btn').addEventListener('click', async () => {
+  showState('sessions');
+  const list = $('session-list');
+  let rows = [];
+  try { rows = (await store?.listSessions?.()) ?? []; } catch { rows = []; }
+  list.innerHTML = rows.length
+    ? rows.map((s) => `
+        <article class="session-card">
+          <h2>${s.title ?? 'Lesson'}</h2>
+          <dl>
+            <dt>When</dt><dd>${fmtWhen(s.startedAt)}</dd>
+            <dt>Segments</dt><dd>${(s.segments ?? []).length}</dd>
+            <dt>Flags</dt><dd>${(s.flags ?? []).length}</dd>
+          </dl>
+        </article>`).join('')
+    : '<p class="sessions-lede">No saved lessons yet.</p>';
+});
+$('sessions-back').addEventListener('click', () => showState(started ? 'live' : 'setup'));
+
+$('delete-all').addEventListener('click', async () => {
+  const ok = confirm(
+    'Delete all saved lessons?\n\nThis cannot be undone. Boses keeps everything on ' +
+    'this device only — there is no cloud copy and no account.');
+  if (!ok) return;
+  try {
+    await store?.deleteAllSessions?.();
+    status('All saved lessons deleted from this device.');
+    $('sessions-btn').click();
+  } catch (err) {
+    status(`Could not delete: ${err?.message ?? err}`);
+  }
+});
+
 // ── lesson lifecycle ────────────────────────────────────────────────────────
 
-$('start-btn').addEventListener('click', async () => {
+async function beginLesson() {
+  // boot() loads the engine in the background. Tapping Start before it lands
+  // used to fall through into a confusing failure deep in the stream loop.
+  if (!engine) {
+    status('Still loading the recogniser — one moment. The rest of the screen is ready.');
+    $('model-progress')?.setAttribute('data-indeterminate', 'true');
+    return;
+  }
+
   started = true;
   $('end-btn').disabled = false;
+  $('flag-btn').disabled = false;
   $('start-btn').disabled = true;
+  $('setup-start').disabled = true;
   capturing = true;
-  hud.render({ online: navigator.onLine, capturing: true, engine: engine?.id ?? 'fixture' });
+  showState('live');
+  renderHud({ capturing: true });
 
   // Open the persisted session BEFORE the first segment, so checkpointing
   // works from the very first utterance.
@@ -313,27 +541,28 @@ $('start-btn').addEventListener('click', async () => {
     }
   };
 
-  const consume = (bridgeLike) => new Promise((resolve) => {
-    bridgeLike.onSegment((raw) => {
-      const seg = gateSegment(raw);
-      session.segments.push(seg);
-      captions.appendSegment(seg);
-      // Checkpoint on arrival, not at the end — a phone that dies at minute
-      // 18 of 20 must not lose the lesson. P4's store owns the write.
-      Promise.resolve(store?.appendSegment?.(session.id, seg)).catch(() => {});
-      hud.render({
-        online: navigator.onLine, capturing, engine: engine?.id ?? 'fixture',
-        snrDb: seg.snrDb, latencyMs: seg.latencyMs,
-      });
-    });
-    resolve();
-  });
+  // One handler, both modes. Gate, render, checkpoint, HUD — in that order,
+  // so the screen, the store and the sheet can never disagree about what was
+  // captured.
+  const handleSegment = (raw) => {
+    const seg = gateSegment(raw);
+    session.segments.push(seg);
+    captions.appendSegment(seg);
+    // Checkpoint on arrival, not at the end — a phone that dies at minute
+    // 18 of 20 must not lose the lesson. P4's store owns the write.
+    Promise.resolve(store?.appendSegment?.(session.id, seg)).catch(() => {});
+    renderHud({ snrDb: seg.snrDb, latencyMs: seg.latencyMs });
+  };
 
   try {
     if (wantsFixture) {
       status('Playing recorded segments. This is not live capture.');
-      hud.render({ online: navigator.onLine, capturing: false, engine: engine?.id ?? 'fixture' });
-      await consume(await streamSegments(engine));   // resolves when the fixture is exhausted
+      renderHud({ capturing: false });
+      // Fixture mode is a plain async iterable — iterate it. (It used to be
+      // piped through consume(), which called .onSegment() on an async
+      // generator. Generators have no such method, so this threw on the first
+      // tap and the button looked dead.)
+      for await (const raw of streamSegments(engine)) handleSegment(raw);
       status('Recorded lesson finished. End class to produce the sheet.');
     } else {
       // Live: microphone -> noise gate -> decoder -> captions.
@@ -351,18 +580,24 @@ $('start-btn').addEventListener('click', async () => {
         snrThresholdDb: gateSnrThresholdDb,
       });
       status(`Listening. Keep this screen on.${hotwords.length ? ` Hotwords: ${hotwords.length}.` : ''}`);
-      hud.render({ online: navigator.onLine, capturing: true, engine: engine.id,
-                   ...mic.signalQuality() });
+      renderHud({ capturing: true, ...mic.signalQuality() });
 
-      // While capture runs, keep the HUD honest about the room.
+      // While capture runs, keep the HUD honest about the room. Polled at
+      // 400ms so the level meter reads as movement rather than a 1Hz stutter;
+      // renderHud() is now a no-op unless a textual chip actually changed, so
+      // this is cheap enough to leave running on a low-end phone.
       const qualityTimer = setInterval(() => {
         if (!capturing || !mic) return;
-        hud.render({ online: navigator.onLine, capturing: true, engine: engine?.id,
-                     ...mic.signalQuality() });
-      }, 1000);
+        const q = mic.signalQuality();
+        hud.setLevel(q.levelDb, true);
+        renderHud({ capturing: true, ...q });
+      }, 400);
 
-      await consume(bridge);             // resolves immediately; segments arrive async
-      // Keep streaming until End class is pressed.
+      // The bridge is a callback, not an iterable: register the handler and
+      // then wait for End class to release us. Note that beginLesson() is NOT
+      // re-entrant — the Start buttons are disabled synchronously above.
+      bridge.onSegment(handleSegment);
+
       await new Promise((resolve) => { stopWhenEnded = resolve; });
       clearInterval(qualityTimer);
     }
@@ -374,14 +609,20 @@ $('start-btn').addEventListener('click', async () => {
     status(denied
       ? 'Microphone permission denied. Allow it in the browser, or add ?fixture=1 to play recorded segments.'
       : `Capture stopped: ${err?.message ?? err}. Segments captured so far are kept. Add ?fixture=1 for the recorded path.`);
-    hud.render({ online: navigator.onLine, capturing: false, engine: engine?.id ?? 'fixture',
-                 note: denied ? 'Microphone permission denied' : 'Capture stopped' });
+    renderHud({
+      capturing: false,
+      note: denied ? 'Microphone permission denied' : 'Capture stopped',
+    });
   } finally {
     $('start-btn').disabled = false;
+    $('setup-start').disabled = false;
     await mic?.stop().catch(() => {});
     mic = null;
   }
-});
+}
+
+$('start-btn').addEventListener('click', beginLesson);
+$('setup-start').addEventListener('click', beginLesson);
 
 $('end-btn').addEventListener('click', () => {
   capturing = false;
@@ -401,11 +642,7 @@ $('end-btn').addEventListener('click', () => {
 
   // Post-class pass. P4 owns these functions; P3 only supplies the session and
   // renders what comes back. Nothing here is invented in the UI layer.
-  const finished = {
-    ...session,
-    segments: session.segments,
-    flags: session.flags,
-  };
+  const finished = { ...session, segments: session.segments, flags: session.flags };
 
   try { finished.vocab = vocabMod?.extractVocab?.(finished) ?? []; }
   catch (err) { console.warn('vocab extraction failed', err); finished.vocab = []; }
@@ -418,38 +655,33 @@ $('end-btn').addEventListener('click', () => {
     ? confidence.deriveCoverage(session.segments)   // P4's: audio-gated coverage
     : deriveCoverage(session.segments);
 
-  // ADR-0002 is still open: P1's engine exposes no per-word confidence, so a
-  // gap here means "not reliably captured", NOT "the model was unsure". Say
-  // which one on the page, using P4's own wording.
-  const unverified = engine?.supportsWordConfidence !== true;
+  const isUnverified = unverified();
 
   sheet.render({
     session: { ...finished, summaryLines },
     coverage,
     summaryLines,
     llmDraft: session.llmDraft,
-    confidenceSource: unverified
+    confidenceSource: isUnverified
       ? (confidence?.UNVERIFIED_LABEL
           ?? 'segment-level reliability (decoder confidence unavailable)')
       : 'per-token decoder confidence',
     // Lets the sheet print an explicit unverified banner when confidence is
     // unavailable. Harmless if sheet.js ignores it.
-    unverified,
+    unverified: isUnverified,
   });
 
-  $('stage').hidden = true;
-  $('sheet-view').hidden = false;
+  showState('sheet');
   $('sheet-status').textContent =
     `${Math.round(coverage.coverageRatio * 100)}% coverage · ${session.flags.length} flagged`;
-  hud.render({ online: navigator.onLine, capturing: false, engine: engine?.id ?? 'fixture' });
+  renderHud({ capturing: false });
   window.scrollTo(0, 0);
 });
 
 $('print-btn').addEventListener('click', () => sheet.print());
 
 $('back-btn').addEventListener('click', () => {
-  $('sheet-view').hidden = true;
-  $('stage').hidden = false;
+  showState('live');
   captions.render();
 });
 
@@ -460,34 +692,69 @@ function formatClock(sec) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+/** Locale-aware date. Intl rather than a hardcoded pattern — the student may
+ *  well be reading this on a phone set to a language we did not plan for. */
+const whenFmt = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium', timeStyle: 'short',
+});
+const fmtWhen = (ms) => {
+  try { return whenFmt.format(new Date(ms ?? Date.now())); }
+  catch { return String(ms); }
+};
+
 /**
- * Drive the engine. Capture is P2's and arrives as a callback; until then the
- * engine itself yields segments (fixture mode), so the UI is exercisable.
+ * Normalise a segment source into an async iterable.
+ *
+ * Two shapes exist and they are genuinely different:
+ *   - { segments() }      the fixture engine yields a known list, then ends
+ *   - { onSegment(cb) }   P2's capture bridge pushes until stopped
+ *
+ * The previous version was an `async function*` whose callback branch
+ * declared `const notify = () => {}` and never reassigned it, so it queued
+ * segments but could never wake to yield them — a permanent hang. It is now a
+ * plain function returning an iterable, which also lets a bad source fail
+ * loudly instead of silently yielding nothing.
+ *
+ * @param {*} source
+ * @returns {AsyncIterable<any>}
  */
-async function* streamSegments(eng) {
-  if (typeof eng.segments === 'function') {
-    for (const seg of await eng.segments()) yield seg;
-    return;
+function streamSegments(source) {
+  if (typeof source?.segments === 'function') return source.segments();
+
+  if (typeof source?.onSegment === 'function') {
+    return (async function* () {
+      const queue = [];
+      let wake = null;
+      source.onSegment((seg) => {
+        queue.push(seg);
+        wake?.();
+      });
+      // A callback bridge has no "done" signal — it pushes until the caller
+      // stops iterating. The `finally` runs on early exit, so breaking out
+      // of the for-await (End class) releases the pending promise instead of
+      // leaving the generator parked forever.
+      try {
+        for (;;) {
+          if (queue.length) { yield queue.shift(); continue; }
+          await new Promise((r) => { wake = r; });
+        }
+      } finally {
+        wake = null;
+        queue.length = 0;
+      }
+    })();
   }
-  if (typeof eng.onSegment === 'function') {
-    const queue = [];
-    let done = false;
-    let notify = () => {};
-    eng.onSegment((seg) => { queue.push(seg); notify(); });
-    while (!done) {
-      if (queue.length) { yield queue.shift(); continue; }
-      await new Promise((r) => { notify = r; });
-    }
-  }
+
+  throw new Error(
+    'Segment source exposes neither segments() nor onSegment(). ' +
+    'Is engine-select.js merged?');
 }
 
 // ── connectivity ────────────────────────────────────────────────────────────
 // Airplane mode is the expected state, so the HUD reports it as a success.
-// Airplane mode is the expected state, so the HUD reports it as a success.
 // The mode word is deliberate: "live mic" and "recorded" must never look alike
 // on screen, or the demo claims something it is not doing.
-const onNet = () => hud.render({
-  online: navigator.onLine, capturing, engine: engine?.id ?? 'fixture',
+const onNet = () => renderHud({
   note: engineIsLive ? 'live microphone'
      : wantsFixture ? 'recorded segments — not live' : undefined,
 });
@@ -532,6 +799,124 @@ try {
     $('start-btn').addEventListener('click', request, { once: true });
   }
 } catch { /* not supported — harmless */ }
+
+// ── go ──────────────────────────────────────────────────────────────────────
+// ── boot ────────────────────────────────────────────────────────────────────
+// Everything above this line is wiring: listeners attached, state functions
+// defined, applyTheme() and showState() called. The UI is ALREADY LIVE here.
+//
+// boot() then loads data in the background. It is deliberately NOT awaited —
+// module evaluation finishes, the page is interactive, and the loading steps
+// below enrich the UI as they complete.
+//
+// Every step is independent and individually guarded. A missing vocab module,
+// an absent hotword file, and a stalled fixture fetch each degrade one small
+// thing. None of them can stop the page from being usable.
+const withTimeout = (p, ms, label) =>
+  Promise.race([
+    p,
+    new Promise((_, rej) =>
+      setTimeout(() => rej(new Error(`${label} timed out after ${ms}ms`)), ms)),
+  ]);
+
+async function boot() {
+  // 1 — P4 post-class modules. All optional.
+  await Promise.all([
+    ['confidence', () => import('./confidence.js'), 'confidence'],
+    ['taglish', () => import('./taglish.js'), 'taglish'],
+    ['vocab', () => import('./vocab.js'), 'vocabMod'],
+    ['summary', () => import('./summary.js'), 'summaryMod'],
+  ].map(async ([, load, slot]) => {
+    try {
+      const mod = await withTimeout(load(), 4000, 'module');
+      // Assign through a lookup so a slow import cannot land in the wrong slot.
+      ({ confidence, taglish, vocabMod, summaryMod })[slot] = mod;
+    } catch (err) {
+      console.warn(`[boses] ${slot} unavailable:`, err.message);
+    }
+  }));
+
+  // 2 — storage. Optional; the session simply stays in memory.
+  try {
+    store = await withTimeout(import('./store.js'), 4000, 'store');
+  } catch (err) {
+    console.warn('[boses] store unavailable:', err.message);
+  }
+
+  // 3 — P2's hotword list. This is the fetch that used to hang the entire
+  //     page. It now has an AbortController AND a race timeout, and the UI
+  //     updates whether or not it arrives.
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 3000);
+    const res = await withTimeout(
+      fetch('../lessons/hotwords/lesson.txt', { signal: ctl.signal })
+        .finally(() => clearTimeout(timer)),
+      3500, 'hotwords',
+    );
+    if (res.ok) {
+      hotwords = (await res.text())
+        .split('\n').map((w) => w.trim().toLowerCase()).filter(Boolean);
+    }
+  } catch (err) {
+    console.warn('[boses] hotwords unavailable:', err.message);
+  }
+
+  $('vocab-list').innerHTML = hotwords.length
+    ? hotwords.map((w) => `<li>${w.replace(/[<>&]/g, '')}</li>`).join('')
+    : '<li>none loaded — the recogniser runs without biasing</li>';
+
+  // 4 — the engine. Slowest step, so it is last and cannot block the rest.
+  const stepModel = $('step-model');
+  const note = $('model-note');
+  const bar = $('model-progress');
+  try {
+    if (wantsFixture) {
+      engine = (await withTimeout(import('./engine-select.js'), 6000, 'engine')).default;
+      await withTimeout(engine.init?.(), 6000, 'engine.init');
+      const id = engine?.id ?? 'fixture';
+      stepModel.dataset.done = 'true';
+      note.textContent =
+        `Ready. Fixture mode — replaying recorded segments via ${id}. This is not live capture.`;
+      status(`Fixture mode — playing recorded segments via ${id}. Not live. No microphone.`);
+      bar?.querySelector('i')?.style.setProperty('width', '100%');
+    } else {
+      captureModule = await withTimeout(import('./capture.js'), 6000, 'capture');
+      engine = (await withTimeout(import('./engine-select.js'), 8000, 'engine')).default;
+      const id = engine?.id ?? 'whisper';
+      status('Live mode — first run downloads the model (~40 MB). Pre-download before a demo.');
+      note.textContent =
+        'Not downloaded yet. The first run fetches about 40 MB, then it is saved and works offline.';
+      renderHud({ capturing: false, engine: id });
+    }
+  } catch (err) {
+    console.warn('[boses] engine unavailable:', err.message);
+    note.textContent = `Recogniser unavailable: ${err.message}`;
+    status('Recogniser unavailable. Add ?fixture=1 to play recorded segments instead.');
+    renderHud({ capturing: false, note: 'recogniser unavailable' });
+    // Do NOT disable Start: fixture mode can still fail for one reason while
+    // the UI itself is perfectly usable, and a dead button helps nobody.
+  }
+
+  renderHud({ capturing: false });
+  document.body.dataset.ready = 'true';
+}
+
+// Do not await. The page is already interactive; boot() only enriches it.
+boot();
+
+applyTheme();
+showState('setup');
+
+// ── design review aid ───────────────────────────────────────────────────────
+// `?ui=panel` / `?ui=sessions` / `?ui=live` forces a view on load, so a
+// screenshot or a design review does not require clicking to reach the parts
+// of the UI that are otherwise hidden. It changes nothing when the parameter
+// is absent, which is every real use.
+const forcedView = params.get('ui');
+if (forcedView === 'panel') openSettings();
+else if (forcedView === 'sessions') $('sessions-btn').click();
+else if (forcedView === 'live') showState('live');
 </script>
 </body>
 </html>
