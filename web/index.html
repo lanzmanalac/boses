@@ -984,6 +984,18 @@ const withTimeout = (p, ms, label) =>
       setTimeout(() => rej(new Error(`${label} timed out after ${ms}ms`)), ms)),
   ]);
 
+function installPostClassModule(slot, mod) {
+  // Update the module-scope bindings used by captions and the study sheet.
+  // Assigning to a temporary object built from these names does not update them.
+  switch (slot) {
+    case 'confidence': confidence = mod; break;
+    case 'taglish': taglish = mod; break;
+    case 'vocabMod': vocabMod = mod; break;
+    case 'summaryMod': summaryMod = mod; break;
+    default: throw new Error(`Unknown post-class module: ${slot}`);
+  }
+}
+
 async function boot() {
   // 1 — P4 post-class modules. All optional.
   await Promise.all([
@@ -994,8 +1006,7 @@ async function boot() {
   ].map(async ([, load, slot]) => {
     try {
       const mod = await withTimeout(load(), 4000, 'module');
-      // Assign through a lookup so a slow import cannot land in the wrong slot.
-      ({ confidence, taglish, vocabMod, summaryMod })[slot] = mod;
+      installPostClassModule(slot, mod);
     } catch (err) {
       console.warn(`[boses] ${slot} unavailable:`, err.message);
     }

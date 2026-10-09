@@ -1,0 +1,24 @@
+{
+  "kind": "live-mic-diagnostic",
+  "source": "boses-gate-log-live-mic-2026-10-09T222636.json (sanitized capture-check export)",
+  "startedAtUtc": "2026-10-09T22:25:46.138Z",
+  "device": "Windows laptop; EMEET SmartCam C950 4K microphone",
+  "browser": "Chromium-based",
+  "gateSnrThresholdDb": 16,
+  "speakerPauses": "Intentional pauses by the speaker; segment boundaries are not evidence of premature system cuts.",
+  "referenceStatus": "Exact words spoken were not confirmed in this export; do not calculate WER or CER from it.",
+  "transcriptStatus": "whisperHeard is the diagnostic page's displayable word text, not the full raw decoder output.",
+  "scope": "Capture-check page only; no main-app captions, study sheet, storage, noise-only, or offline check.",
+  "segments": [
+    { "startSec": 4.88, "endSec": 7.54, "snrDb": 26.3, "result": "sent_to_asr", "whisperHeard": "ay yamahalaga ang mga halaman.", "asrMs": 1402, "engine": "whisper-webgpu" },
+    { "startSec": 7.56, "endSec": 9.04, "snrDb": 20.2, "result": "sent_to_asr", "whisperHeard": "sa ating buhay.", "asrMs": 918, "engine": "whisper-webgpu" },
+    { "startSec": 15.86, "endSec": 19.42, "snrDb": 24.7, "result": "sent_to_asr", "whisperHeard": "Plans need these", "asrMs": 866, "engine": "whisper-webgpu" },
+    { "startSec": 19.44, "endSec": 20.5, "snrDb": 25.4, "result": "sent_to_asr", "whisperHeard": "Sunlight.", "asrMs": 746, "engine": "whisper-webgpu" },
+    { "startSec": 20.7, "endSec": 21.6, "snrDb": 28.8, "result": "sent_to_asr", "whisperHeard": "Watry.", "asrMs": 721, "engine": "whisper-webgpu" },
+    { "startSec": 21.66, "endSec": 23.38, "snrDb": 24.9, "result": "sent_to_asr", "whisperHeard": "and carbon dioxide.", "asrMs": 808, "engine": "whisper-webgpu" },
+    { "startSec": 26.44, "endSec": 27.84, "snrDb": 31.1, "result": "sent_to_asr", "whisperHeard": "Okaklas.", "asrMs": 757, "engine": "whisper-webgpu" },
+    { "startSec": 27.92, "endSec": 29.08, "snrDb": 25.6, "result": "sent_to_asr", "whisperHeard": "Good", "asrMs": 738, "engine": "whisper-webgpu" },
+    { "startSec": 29.14, "endSec": 31.56, "snrDb": 27.7, "result": "sent_to_asr", "whisperHeard": "ay yung pagaralan", "asrMs": 972, "engine": "whisper-webgpu" },
+    { "startSec": 31.58, "endSec": 33.56, "snrDb": 22.1, "result": "sent_to_asr", "whisperHeard": "ang photo synthesis.", "asrMs": 812, "engine": "whisper-webgpu" }
+  ]
+}

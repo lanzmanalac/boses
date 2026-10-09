@@ -20,7 +20,7 @@ The P1–P4 modules are merged in this checkout: P1's in-browser recognizer,
 P2's capture, noise measurement, recordings, gold transcript, and measured
 thresholds, P3's captions, study sheet, and service worker, and P4's
 audio-quality gate, Taglish annotations, vocabulary, summary, session store,
-and evaluation tools. `node --test` passes.
+and evaluation tools. `node --test` passed 68 checks after this merge.
 
 The live segment contract is settled. A successful decode becomes timed words
 with `conf: null`; only a failed decode, a repetition loop, rejected audio, or
@@ -33,9 +33,10 @@ words are correct.
 What is **not** yet verified is the behavior on the demo devices: the live
 microphone path, offline reload, phone performance, and session recovery and
 deletion in the UI have not been measured on a real phone or laptop. See
-[evaluation status](eval/RESULTS.md). The only committed accuracy number is a
-recorded-audio baseline (65.5% WER / 23.8% CER on 113 reference words), which
-is a different claim from the live path.
+[evaluation status](eval/RESULTS.md). The reported clean-lesson baseline is
+65.5% WER / 23.8% CER on 113 reference words. Additional Base clean and Tiny
+noisy recorded-audio outputs are committed under `eval/runs/`; none of these
+measure the live microphone path.
 
 ## Run locally
 
@@ -53,10 +54,9 @@ live mode: it asks for microphone permission, downloads the model on first use,
 and decodes the microphone through P1's engine.
 
 For an offline check, first load the deployed app and all needed model/fixture
-assets online on the **same device and origin**, then disconnect networking and
-reload. The current service worker needs a host configuration that lets it
-serve `lessons/fixtures/` outside its default `/web/` scope; do not claim the
-cold offline fixture path works until this is tested on the chosen host.
+assets online on the **same device and origin**, then disconnect networking
+and reload. Service-worker scope and model caching depend on the chosen host;
+do not claim offline operation until it is tested there on the same device.
 
 ## Data flow and module owners
 
@@ -73,26 +73,18 @@ so the word/gap ordering can be checked without a DOM.
 Shared browser data shapes are in `contracts.ts`. Browser modules are plain
 JavaScript; TypeScript types appear only in JSDoc comments.
 
-### Integration handoff for P3
+### Live integration status
 
-Before rendering or saving a real ASR segment, call `gateSegment(raw, {
-snrThresholdDb, minDurationSec, repetitionDetected,
-supportsWordConfidence: engine.supportsWordConfidence })` from
-`web/confidence.js`. P2 supplies the measured thresholds and repetition
-signal. Use the returned segment in captions, the in-memory session, and
-`store.appendSegment`; never keep the ungated text as the displayed record.
-At class start, call `store.beginSession(session)`. At class end, fill
-`session.vocab` with `store.extractVocab(session)`, fill
-`session.summaryLines` with `store.buildSummary(session)`, then call
-`store.finalizeSession(session)`. Connect `store.getSession` for recovery and
-`store.deleteAllSessions` to the one-tap delete control.
+The live page uses P2's 16 dB default, calls P4's gate before captions and
+checkpointing, passes lesson hotwords to P1, and builds the study sheet. It
+also connects session recovery and deletion. P3 still needs to verify these
+flows and the service-worker cache on the demo phone, laptop, and host. A saved
+`boses.snrThresholdDb` value or `?snr=` query can override the default; record
+the active value during testing.
 
-The UI must call retained text **unverified**. The printed coverage percentage
+Retained text must be called **unverified**. The printed coverage percentage
 is the share of marked transcript time that passed audio-quality checks, not
-model confidence or word accuracy. P3 should keep `web/sheet.js` and
-`web/index.html` copy aligned with that wording and verify the service-worker
-scope and cache version on the deployed host. These are P3-owned files; P4 does
-not edit them beyond the exported ordering helper above.
+model confidence or word accuracy.
 
 ## Post-class output and privacy
 
@@ -123,7 +115,7 @@ never becomes a displayed word or a study term.
 For a single gold/hypothesis file pair:
 
 ```sh
-node eval/wer.mjs lessons/gold/lesson-clean.transcript.txt path/to/raw-asr.txt clean-taglish
+node eval/wer.mjs lessons/gold/lesson-clean.transcript.txt eval/runs/p1-lesson-clean/tiny-tl-hotwords.txt tiny-tl-hotwords
 ```
 
 For a whole gated live run — raw WER/CER overall and per human-labeled

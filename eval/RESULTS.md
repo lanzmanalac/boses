@@ -1,10 +1,11 @@
 # Evaluation results
 
-**No live-device results are recorded yet.** Nothing in this file may be quoted
-as recognition accuracy until the acceptance run below has been performed on
-the demo phone and laptop with the shipped model and settings.
+**No scored live-device acceptance results are recorded yet.** The baseline
+below describes recorded audio decoded offline, not microphone, capture,
+gating, or display accuracy on the demo phone and laptop. One unscored live-mic
+diagnostic is documented separately below.
 
-What *is* committed is a recorded-audio baseline, and it is a different claim:
+The published baseline is a recorded-audio decode:
 P1 decoded `lessons/sample/lesson-clean.wav` offline, span by span, against
 P2's human transcript. That exercises the model and the scoring tool. It is
 not the browser's live microphone path, and it does not test capture, gating,
@@ -22,8 +23,66 @@ by the team on a Mac (paths in that file are P1's original absolute paths).
 Force-decoding a Tagalog lesson as Tagalog produces a repetition loop, which
 is why that row is above 100% WER — the insertions are the model repeating.
 Read the four rows together: the language and hotword choice changes the error
-rate more than any other setting measured so far, and none of these rows is a
-reason to have chosen it.
+rate more than any other setting measured so far. None establishes live-path
+accuracy.
+
+Additional Base clean and Tiny noisy recorded-audio outputs are committed in
+`eval/runs/p1-base-clean/` and `eval/runs/p1-tiny-noisy/`. They need review and
+clear run labels before inclusion in a final model comparison.
+
+P1 decoded 13 human-timed spans. For the Tagalog + hotword condition, the
+human-labeled slices and recorded per-span latency were:
+
+| Slice | Reference words | WER | CER |
+| --- | ---: | ---: | ---: |
+| TL | 20 | 75.0% | 23.2% |
+| EN | 15 | 60.0% | 29.9% |
+| MIX | 78 | 65.4% | 22.9% |
+
+The hotword run's median decode time was 899 ms per span (maximum 1,481 ms)
+on P1's recorded machine. These small slices are descriptive, especially the
+15-word EN slice. The forced-Tagalog run had 149 inserted words and one span
+that took 9,854 ms. These timings are not phone or live-caption latency.
+
+## P2 audio-gate measurements
+
+P2's current [gate report](../lessons/GATE-REPORT.md) uses a 16 dB SNR
+threshold, 0.3 s minimum speech, and 0.5 s hangover. It reports:
+
+| Recording | Segments sent to ASR | Labeled lines covered |
+| --- | ---: | ---: |
+| Clean lesson | 12/12 | 13/13 |
+| Noisy lesson | 9/11 | 13/13 |
+| Noise-only | 0/5 | No speech |
+| 20 dB sweep | 11/11 | 13/13 |
+| 10 dB sweep | 3/6 | 8/13 |
+| 5 dB sweep | 0/6 | 0/13 |
+| 0 dB sweep | 0/6 | 0/13 |
+
+These are capture/gate results, not recognition WER. P2's report also notes a
+clipped start in one clean line and a clipped end in one 10 dB line; those
+remain checks for the final live run.
+
+## P4 live-mic diagnostic — not an accuracy score
+
+The sanitized [capture-check export](runs/p4-live-mic-diagnostic-2026-10-10.json)
+records one Windows laptop run with an EMEET SmartCam C950 4K microphone and
+the 16 dB gate. All **10 emitted segments** had SNR 20.2–31.1 dB, were sent
+to ASR, and returned nonempty diagnostic text on `whisper-webgpu`. This shows
+that the gate did not reject any *emitted* segment in this run; it does not
+prove that every spoken word was captured. The speaker confirmed that the
+pauses causing the segment boundaries were intentional, so this log is not
+evidence of premature P2 segmentation.
+
+The diagnostic text includes “ay yamahalaga ang mga halaman,” “Plans need
+these,” and “ay yung pagaralan.” The speaker reports poor Tagalog recognition;
+P1 should compare the same audio under candidate model/language settings.
+The exported `whisperHeard` field is the diagnostic page's displayable word
+text, not a complete raw decoder transcript. The export contains neither a
+confirmed word-for-word human reference nor audio for rechecking it, so **no
+live WER/CER or TL/EN/MIX rate is claimed**. It also does not test noise-only
+hallucinations, main-app captions, the study sheet, persistence, phone use, or
+airplane mode. Those remain acceptance-run checks.
 
 ## Method
 
@@ -111,8 +170,8 @@ table above: pending.
   has fewer than a few dozen words without saying so.
 - Gate-pass coverage and word accuracy are different quantities. Reporting one
   as the other is the main way this prototype could mislead a reader.
-- The prototype has not been evaluated with students, and the phone and laptop
-  numbers do not exist yet.
+- The prototype has not been evaluated with students. The laptop diagnostic
+  above is unscored; final phone and laptop acceptance numbers do not exist yet.
 - The fixture files in `lessons/fixtures/` carry authored `conf` values. They
   are not decoder output; `gateSegment` strips them to `null` and the captions
   then show the unverified badge. Any path that renders a fixture segment

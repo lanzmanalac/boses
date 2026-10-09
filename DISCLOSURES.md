@@ -38,15 +38,17 @@ verified in this checkout.
 
 The intended architecture processes audio and transcript data on the device.
 No P4 module uploads either to a server. The complete app's network behavior
-cannot be certified until P1's model loader, P2's capture path, P3's service
-worker, and the deployment host are tested together. Record any one-time model
+still needs testing with the integrated P1 model loader, P2 capture path, P3
+service worker, and chosen deployment host. Record any one-time model
 download and all other network requests observed in that test.
 
-P2 must confirm the provenance and consent status of every demo recording.
-The demo plan calls for team-recorded simulated lessons and no real student
-audio; do not assert that as a completed fact until the assets are checked.
-Session text is per-device; there is no account or cross-device sync. Deletion
-removes the local IndexedDB records once P3 connects the UI action.
+P2 documents the lesson recordings as made by a team member on Oct 9, 2026,
+with hand-checked labels and no student speech in
+`docs/P2-audio-capture.md`. The noisy take uses external classroom ambience;
+confirm permission to reuse that source before submission.
+Session text is per-device; there is no account or cross-device sync. The UI
+has a delete-all action; verify that it removes local IndexedDB records on the
+final devices.
 
 ## Existing work, assets, and development tools
 
@@ -54,8 +56,8 @@ removes the local IndexedDB records once P3 connects the UI action.
 | --- | --- |
 | Existing code and assets | Identify each external source and its license after the final asset audit. Existing diagrams, icons, and code in this repository need team provenance confirmation. |
 | AI-assisted development | Codex assisted with P4 fixture, confidence, Taglish, vocabulary, summary, storage, evaluation, and documentation code. Each teammate should add any other AI tools they used. |
-| Audio and transcripts | P2 to list recording dates, speakers, locations, and who hand-transcribed the gold references. P2's `lessons/` carries the recordings and the 13-span clean gold reference used by the committed baseline |
-| Evaluation numbers | The only committed numbers are a recorded-audio baseline in `eval/RESULTS.md` (not the live path). Live phone and laptop numbers are pending. Fixtures are excluded |
+| Audio and transcripts | P2 documents the date, speaker, recording setup, and hand-checked labels in `docs/P2-audio-capture.md`. Verify reuse rights for the external ambience in the noisy take. |
+| Evaluation numbers | `eval/RESULTS.md` reports a recorded-audio baseline; additional Base clean and Tiny noisy run files are committed but need review. Live phone and laptop numbers remain pending. Fixtures are excluded. |
 
 ## Known limits to state plainly
 
