@@ -70,6 +70,10 @@ def time_words(tokens, start, end):
         d = (end - start) * w / total
         out.append((tok, round(t, 2), round(t + d, 2)))
         t += d
+    # Pin the outer edges to the segment exactly; only inner boundaries are rounded.
+    if out:
+        out[0] = (out[0][0], start, out[0][2])
+        out[-1] = (out[-1][0], out[-1][1], end)
     return out
 
 
