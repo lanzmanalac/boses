@@ -57,6 +57,9 @@ const REASON_PLAIN = {
  * @property {string[]} [summaryLines]  Produced by P4. Never a string P3 writes.
  * @property {string} [llmDraft]         Rendered under a visible machine-draft mark.
  * @property {string} [confidenceSource] e.g. "per-token from decoder".
+ * @property {boolean} [unverified]  true when the decoder exposed no per-word
+ *   confidence, so a gap means "not reliably captured" rather than
+ *   "the model was unsure". Printed as a banner. See ADR-0002.
  */
 
 /**
@@ -188,6 +191,12 @@ export function buildSheet(input) {
   : '<p class="meta">Nothing was flagged, and nothing was missed. Coverage was full.</p>'}
 
   <h2>4 · How much of this record is solid</h2>
+  ${input.unverified ? `
+  <p class="meta"><span class="draft-mark">Unverified text</span></p>
+  <p class="meta">The words below were <strong>not</strong> checked against the
+  recognizer's own confidence — it does not expose per-word scores. Bracketed
+  marks mean this part of the lesson was not reliably captured, not that the
+  model felt unsure. Compare with the recording before relying on them.</p>` : ''}
   <div class="coverage">
     <span class="num">${pct}%</span>
     <span class="bar-mini"><i style="width:${pct}%"></i></span>
