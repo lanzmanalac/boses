@@ -1119,6 +1119,14 @@ h1, h2, h3 {
   .chip { padding: 0.1rem var(--space-2); font-size: var(--step--2); }
 
   .settings-btn { padding-inline: var(--space-3); }
+
+  /* ONE entry point to saved lessons per device class.
+     The merge brought in footer buttons for open/delete alongside the header
+     "Saved lessons" control, which is the same feature twice. On a laptop two
+     rows of footer is affordable; on a phone it cost ~130px of caption height
+     for nothing. The header button is always visible on both, so the footer
+     duplicates step aside on narrow screens. Nothing is lost. */
+  #open-saved-btn, #delete-saved-btn { display: none; }
 }
 
 /* Short viewport — landscape phone, or a small laptop window. */

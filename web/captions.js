@@ -251,7 +251,7 @@ this.userScrolledAway = false;
       // The first thing a student sees. Explain what will happen rather than
       // showing an empty box that looks broken.
       this.root.innerHTML =
-        '<div class="empty" data-empty="true">' +
+'<div class="empty" data-empty="true">' +
         // A slow bracket breathe. Waiting must never look broken.
         '<span class="bracket" aria-hidden="true">[ &nbsp;]</span>' +
         '<h2>Captions will appear here.</h2>' +
@@ -260,6 +260,9 @@ this.userScrolledAway = false;
         '<p>Anything that could not be heard clearly is shown as a marked gap ' +
         'rather than guessed at, because a wrong caption you trust is worse ' +
         'than one that admits it is missing.</p>' +
+        // Wording from the integration pass: name the limit in the first
+        // screen a student sees, not only on the sheet at the end of class.
+        '<p>Shown words passed a noise check and were not checked for accuracy.</p>' +
         '</div>';
       this.emitPacing();
       return;
@@ -299,6 +302,7 @@ this.userScrolledAway = false;
         if (seg.engine && seg.engine !== 'fixture') bits.push(esc(seg.engine));
         if (seg.latencyMs) bits.push(`${seg.latencyMs} ms`);
         bits.push(`SNR ${Number(seg.snrDb).toFixed(1)} dB`);
+        if (seg.words.length && seg.words.every((w) => w.conf === null)) bits.push('unverified');
         if (flagged.has(seg.start)) bits.push('flagged');
 
         return (

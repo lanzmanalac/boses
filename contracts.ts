@@ -13,8 +13,8 @@
 //   2. AsrEngine.supportsWordConfidence: boolean.  (ADR-0002. Lets the gap
 //                                marker degrade honestly instead of pretending.)
 //
-// Rule for everyone: there is no code path that produces a Word without a
-// confidence value or a provenance of 'unknown'. No confidence -> a Gap, not a word.
+// Rule for everyone: a word may have conf: null when the decoder has no score;
+// a failed or unusable decode is a Gap with no words.
 
 export type Confidence = number | null; // 0..1, decoder-derived; null = unavailable
 export type EngineId = 'whisper-webgpu' | 'whisper-wasm' | 'fixture';
@@ -41,6 +41,12 @@ export interface Gap {
   reason: GapReason;
 }
 
+export interface RawDecode {
+  text: string;
+  decodeMs: number | null;
+  outcome: string;
+}
+
 export interface TranscriptSegment {
   id: string;
   start: number;
@@ -50,6 +56,7 @@ export interface TranscriptSegment {
   gaps: Gap[];           // and represented here instead
   engine: EngineId;
   latencyMs: number;     // utterance close -> segment ready
+  raw?: RawDecode;
 }
 
 export interface TranscribeOptions {

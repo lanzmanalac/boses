@@ -29,6 +29,9 @@ const MAX_CRASHES = 1;
  *   prompt: string | null,
  *   calledAt: number,
  *   deadlineAt: number,
+ *   postedAt: number | null,
+ *   rawText: string,
+ *   decodeMs: number | null,
  *   timer: ReturnType<typeof setTimeout> | null,
  *   promise: Promise<TranscriptSegment>,
  *   resolve: (s: TranscriptSegment) => void,
@@ -104,6 +107,9 @@ export class WhisperEngine {
       prompt,
       calledAt: now,
       deadlineAt: now + budget,
+      postedAt: null,
+      rawText: '',
+      decodeMs: null,
       timer: null,
       promise: /** @type {Promise<TranscriptSegment>} */ (null),
       resolve: () => {},
@@ -184,14 +190,19 @@ export class WhisperEngine {
     if (type === 'decoded' || type === 'decode_failed') {
       const id = String(/** @type {{ id?: string }} */ (msg).id ?? '');
       const entry = this._ledger.get(id);
+      if (entry) {
+        entry.rawText = String(/** @type {{ text?: string }} */ (msg).text ?? '');
+        entry.decodeMs = entry.postedAt == null
+          ? null
+          : Math.max(0, Math.round(performance.now() - entry.postedAt));
+      }
       if (entry && !entry.settled) {
         if (type === 'decode_failed') this._settle(id, { kind: 'failed' });
         else {
-          const text = String(/** @type {{ text?: string }} */ (msg).text ?? '');
           const chunks = Array.isArray(/** @type {{ chunks?: unknown }} */ (msg).chunks)
             ? /** @type {PipelineChunk[]} */ (/** @type {{ chunks: unknown }} */ (msg).chunks)
             : [];
-          this._settle(id, decodeFromWorker(text, chunks, entry.prompt));
+          this._settle(id, decodeFromWorker(entry.rawText, chunks, entry.prompt));
         }
       }
       if (this._busy === id) {
@@ -245,6 +256,7 @@ export class WhisperEngine {
       if (e.settled) continue;
       if (now >= e.deadlineAt) continue;
       this._busy = e.id;
+      e.postedAt = performance.now();
       this._worker.postMessage({
         type: 'decode',
         id: e.id,
@@ -353,6 +365,37 @@ function decodeFromWorker(text, chunks, prompt) {
   return { kind: 'decoded', text: trimmed, chunks };
 }
 
+const END_SLACK_SEC = 0.25; // whisper word ends can overshoot the clip by a few ms
+
+/**
+ * Clip-relative chunks to session-absolute words. All or nothing.
+ * @param {readonly PipelineChunk[]} chunks
+ * @param {number} start
+ * @param {number} end
+ * @returns {{ ok: true, words: import('../contracts.ts').Word[] } | { ok: false }}
+ */
+function timedWords(chunks, start, end) {
+  /** @type {import('../contracts.ts').Word[]} */
+  const words = [];
+  let prevEnd = start;
+  for (const chunk of chunks ?? []) {
+    const text = String(chunk?.text ?? '').trim();
+    if (!/[\p{L}\p{N}]/u.test(text)) continue;
+    const t0 = chunk?.timestamp?.[0];
+    const t1 = chunk?.timestamp?.[1];
+    if (!Number.isFinite(t0) || !Number.isFinite(t1)) return { ok: false };
+    const absStart = start + t0;
+    let absEnd = start + t1;
+    if (absEnd > end + END_SLACK_SEC) return { ok: false };
+    if (absEnd > end) absEnd = end;
+    if (absStart < start || absStart < prevEnd || absEnd <= absStart) return { ok: false };
+    words.push({ text, start: absStart, end: absEnd, conf: null });
+    prevEnd = absEnd;
+  }
+  if (words.length === 0) return { ok: false };
+  return { ok: true, words };
+}
+
 /**
  * @param {Entry} e
  * @param {DecodeOutcome} outcome
@@ -363,6 +406,8 @@ function decodeFromWorker(text, chunks, prompt) {
 function toSegment(e, outcome, engine, latencyMs) {
   const start = e.startSec;
   const end = e.startSec + e.pcm.length / SAMPLE_RATE;
+  /** @type {import('../contracts.ts').Word[]} */
+  let words = [];
   /** @type {Gap[]} */
   let gaps = [];
   if (outcome.kind === 'too_short') {
@@ -370,28 +415,31 @@ function toSegment(e, outcome, engine, latencyMs) {
   } else if (outcome.kind === 'repetition') {
     gaps = [{ start, end, reason: { kind: 'repetition_suppressed' } }];
   } else if (outcome.kind === 'decoded') {
-    gaps = [
-      {
-        start,
-        end,
-        reason: { kind: 'low_confidence', alternatives: [outcome.text] },
-      },
-    ];
+    const mapped = timedWords(outcome.chunks, start, end);
+    if (mapped.ok) words = mapped.words;
+    else gaps = [{ start, end, reason: { kind: 'low_confidence' } }];
   } else {
     gaps = [{ start, end, reason: { kind: 'low_confidence' } }];
   }
+  const raw = Object.freeze({
+    text: e.rawText,
+    decodeMs: e.decodeMs,
+    outcome: outcome.kind,
+  });
   const seg = {
     id: e.id,
     start,
     end,
     snrDb: e.snrDb,
-    words: [],
+    words,
     gaps,
     engine,
     latencyMs,
+    raw,
   };
   Object.freeze(seg.words);
   Object.freeze(seg.gaps);
+  for (const w of words) Object.freeze(w);
   for (const g of gaps) {
     Object.freeze(g);
     Object.freeze(g.reason);

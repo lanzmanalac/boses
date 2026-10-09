@@ -94,7 +94,7 @@ export class FixtureEngine {
    * @param {{fixture?: 'clean'|'noisy'|'taglish', segments?: unknown,
    *          fetcher?: typeof fetch}} [options]
    */
-  constructor({ fixture = 'clean', segments, fetcher = globalThis.fetch } = {}) {
+  constructor({ fixture = 'clean', segments, fetcher = globalThis.fetch?.bind(globalThis) } = {}) {
     if (!FIXTURE_NAMES.has(fixture)) {
       throw new Error(`Unknown fixture "${fixture}"; choose clean, noisy, or taglish`);
     }

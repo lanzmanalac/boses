@@ -146,7 +146,7 @@
   </section>
 
   <!-- ── bottom bar ─────────────────────────────────────────────────────── -->
-  <footer class="foot no-print" id="foot">
+<footer class="foot no-print" id="foot">
     <button class="btn" id="flag-btn" disabled>
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v18M6 4h12l-3 4 3 4H6"/></svg>
       I missed this
@@ -158,6 +158,17 @@
     <button class="btn" id="end-btn" disabled>
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v16h-6M10 8l4 4-4 4M4 4v16"/></svg>
       End class → sheet
+    </button>
+    <!-- Saved-lesson recovery and deletion, wired by the integration pass.
+         Kept here (rather than only in the saved-lessons view) because a
+         lesson that died at minute 18 must be reachable in one tap. -->
+    <button class="btn" id="open-saved-btn">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 10h16M9 15h6"/></svg>
+      Open saved lesson
+    </button>
+    <button class="btn btn-danger" id="delete-saved-btn">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+      Delete saved lessons
     </button>
     <span class="spacer"></span>
     <span class="status" id="status" role="status" aria-live="polite"></span>
@@ -225,6 +236,7 @@
 import { CaptionRenderer, Presentation, SignalQualityHUD, TYPE_MIN, TYPE_MAX }
   from './captions.js';
 import { StudySheet, deriveCoverage } from './sheet.js';
+import { DEFAULTS } from './noise.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg; };
@@ -298,6 +310,25 @@ function persistFlags(flags) {
   try { store?.saveFlags?.(session.id, flags); } catch { /* non-fatal */ }
 }
 
+function asGap(seg) {
+  return {
+    ...seg,
+    words: [],
+    gaps: [{ start: seg.start, end: seg.end, reason: { kind: 'low_confidence' } }],
+  };
+}
+
+function coverageOf(segments) {
+  return confidence?.deriveCoverage
+    ? confidence.deriveCoverage(segments)
+    : deriveCoverage(segments);
+}
+
+function setSavedLessonButtonsHidden(hidden) {
+  $('open-saved-btn').hidden = hidden;
+  $('delete-saved-btn').hidden = hidden;
+}
+
 // ── engine ──────────────────────────────────────────────────────────────────
 // engine-select.js is P4's. If it is absent, fixture mode is unavailable and
 // we say so plainly instead of showing a blank screen.
@@ -313,10 +344,9 @@ const wantsFixture = params.has('fixture');
 let engineIsLive = false;   // true only when a real mic feeds a real model
 let stopWhenEnded = null;   // releases the live stream when End class is pressed
 
-// P2 owns this number. 12 dB is their measured default (speech 18-38 dB,
-// classroom babble 7-11 dB). Overridable for a noisier room:
+// P2 owns this number. Overridable for a noisier room:
 //   ?snr=10  or  localStorage 'boses.snrThresholdDb'
-let gateSnrThresholdDb = 12;
+let gateSnrThresholdDb = DEFAULTS.snrThresholdDb;
 try {
   const q = new URLSearchParams(location.search).get('snr');
   if (q && Number.isFinite(Number(q))) gateSnrThresholdDb = Number(q);
@@ -366,6 +396,22 @@ function showState(name) {
   $('sheet-view').hidden = name !== 'sheet';
   $('foot').hidden = name === 'sessions' || name === 'sheet';
   $('flag-hint').hidden = !(name === 'live' && started);
+}
+
+function showUnfinishedLessonNotice() {
+  // Was a module-scope `await` at boot. IndexedDB is normally instant, but it
+  // is genuinely unavailable in some private-browsing modes and on some
+  // embedded webviews — and a module-level await that never settles is exactly
+  // what silently killed every button once already. Now it runs inside boot(),
+  // after the UI is wired, and it cannot block anything.
+  store?.listSessions?.().then((listed) => {
+    if (listed?.[0] && listed[0].endedAt == null) {
+      const prev = $('status').textContent;
+      status(prev
+        ? `${prev} An unfinished lesson is saved.`
+        : 'An unfinished lesson is saved.');
+    }
+  }).catch(() => { /* listing is optional at boot */ });
 }
 
 // ── controls ────────────────────────────────────────────────────────────────
@@ -498,53 +544,57 @@ async function beginLesson() {
   $('start-btn').disabled = true;
   $('setup-start').disabled = true;
   capturing = true;
-  showState('live');
-  renderHud({ capturing: true });
+showState('live');
+      // Saved-lesson buttons are for a finished or interrupted lesson, never
+      // while one is running.
+      setSavedLessonButtonsHidden?.(true);
+      renderHud({ capturing: true });
 
-  // Open the persisted session BEFORE the first segment, so checkpointing
-  // works from the very first utterance.
-  try { store?.beginSession?.({ id: session.id, startedAt: session.startedAt, title: session.title }); }
-  catch (err) { console.warn('session not opened in store', err); }
+  try {
+    if (store?.beginSession) {
+      await store.beginSession({ id: session.id, startedAt: session.startedAt, title: session.title });
+    }
+  } catch (err) { console.warn('session not opened in store', err); }
 
-  // One path for both modes: consume { onSegment } and render. The only
-  // difference is where segments come from.
-  // P4 owns gateSegment(); P2 owns the thresholds. The gate runs AFTER the
-  // recognizer returns and BEFORE anything else sees the segment, so the
-  // screen, the store and the study sheet all see the same gated result.
-  // One gate, one answer — never let the view invent its own uncertainty.
   const gateOptions = {
-    snrThresholdDb: gateSnrThresholdDb,   // P2's measured value
-    minDurationSec: 0.3,
+    snrThresholdDb: gateSnrThresholdDb,
+    minDurationSec: DEFAULTS.minSpeechSec,
     supportsWordConfidence: engine?.supportsWordConfidence === true,
-    repetitionDetected: false,            // P2 flags it on the segment itself
+    repetitionDetected: false,
     wordConfidenceThreshold: 0.55,
   };
 
   const gateSegment = (seg) => {
-    if (!confidence?.gateSegment) return seg;
+    if (!confidence?.gateSegment) {
+      status('The caption check failed, so this segment is shown as a gap.');
+      return asGap(seg);
+    }
+    let gated;
     try {
-      const gated = confidence.gateSegment(seg, {
+      gated = confidence.gateSegment(seg, {
         ...gateOptions,
         repetitionDetected: seg.repetitionDetected === true,
       });
-      // Taglish labels annotate recognized words. They never rewrite text —
-      // a Taglish sentence the teacher spoke stays Taglish.
-      if (taglish?.tagSegment && gated.words?.length) {
-        gated.taglish = taglish.tagSegment(gated, { tlTerms: [], enTerms: [] });
-      }
-      return gated;
     } catch (err) {
-      // A gate that throws must not silently drop the segment. Show it as-is
-      // rather than pretending it was verified.
-      console.warn('[boses] gateSegment failed, showing ungated segment', err);
-      return seg;
+      console.warn('[boses] gateSegment failed, showing a gap', err);
+      status('The caption check failed, so this segment is shown as a gap.');
+      return asGap(seg);
     }
+    if (taglish?.tagSegment && gated.words?.length) {
+      try {
+        gated.taglish = taglish.tagSegment(gated, { tlTerms: [], enTerms: [] });
+      } catch (err) {
+        console.warn('[boses] Taglish tagging failed; keeping gated captions', err);
+      }
+    }
+    return gated;
   };
 
   // One handler, both modes. Gate, render, checkpoint, HUD — in that order,
   // so the screen, the store and the sheet can never disagree about what was
-  // captured.
-  const handleSegment = (raw) => {
+  // captured. Uses renderHud() rather than hud.render() directly so the
+  // unverified tag and the live level meter stay on screen during a lesson.
+  const acceptSegment = (raw) => {
     const seg = gateSegment(raw);
     session.segments.push(seg);
     captions.appendSegment(seg);
@@ -558,28 +608,24 @@ async function beginLesson() {
     if (wantsFixture) {
       status('Playing recorded segments. This is not live capture.');
       renderHud({ capturing: false });
-      // Fixture mode is a plain async iterable — iterate it. (It used to be
-      // piped through consume(), which called .onSegment() on an async
-      // generator. Generators have no such method, so this threw on the first
-      // tap and the button looked dead.)
-      for await (const raw of streamSegments(engine)) handleSegment(raw);
+      for await (const raw of streamSegments(engine)) acceptSegment(raw);
       status('Recorded lesson finished. End class to produce the sheet.');
     } else {
-      // Live: microphone -> noise gate -> decoder -> captions.
       status('Requesting microphone…');
-      mic = new captureModule.MicCapture();
-      await mic.start();                 // rejects if permission is denied
+      mic = new captureModule.MicCapture({
+        snrThresholdDb: gateSnrThresholdDb,
+        minSpeechSec: DEFAULTS.minSpeechSec,
+      });
+      await mic.start();
       engineIsLive = true;
 
-      // P2's bridge gates on SNR before the decoder ever runs. That is the
-      // behaviour that keeps the gap promise honest in a loud room. Hotwords
-      // go to the DECODER only — the UI never substitutes a term the speaker
-      // did not actually say.
       bridge = captureModule.connectCapture(mic, engine, {
         hotwords,
         snrThresholdDb: gateSnrThresholdDb,
       });
-      status(`Listening. Keep this screen on.${hotwords.length ? ` Hotwords: ${hotwords.length}.` : ''}`);
+// Naming the gate threshold on screen: the student should be able to see
+      // what the system is measuring, not guess at it.
+      status(`Listening. Keep this screen on. ${gateSnrThresholdDb} dB.${hotwords.length ? ` Hotwords: ${hotwords.length}.` : ''}`);
       renderHud({ capturing: true, ...mic.signalQuality() });
 
       // While capture runs, keep the HUD honest about the room. Polled at
@@ -605,6 +651,7 @@ async function beginLesson() {
     console.warn('capture stream ended', err);
     capturing = false;
     engineIsLive = false;
+    setSavedLessonButtonsHidden(false);
     const denied = /permission|denied|NotAllowed/i.test(err?.message ?? '');
     status(denied
       ? 'Microphone permission denied. Allow it in the browser, or add ?fixture=1 to play recorded segments.'
@@ -624,58 +671,137 @@ async function beginLesson() {
 $('start-btn').addEventListener('click', beginLesson);
 $('setup-start').addEventListener('click', beginLesson);
 
-$('end-btn').addEventListener('click', () => {
+$('end-btn').addEventListener('click', async () => {
+  $('end-btn').disabled = true;
   capturing = false;
   engineIsLive = false;
-  stopWhenEnded?.();                    // release the live stream's await
+  setSavedLessonButtonsHidden(false);
+  stopWhenEnded?.();
   stopWhenEnded = null;
-  mic?.stop().catch(() => {});          // release the microphone now, not at end of class
+  await mic?.stop().catch(() => {});
   mic = null;
   session.segments = captions.getSegments();
   session.flags = captions.getFlags();
 
-  // Persist the finished session. P4 owns the schema; a failure here must not
-  // lose the sheet the student is looking on.
+  try { session.vocab = vocabMod?.extractVocab?.(session) ?? []; }
+  catch (err) { console.warn('vocab extraction failed', err); session.vocab = []; }
+
+  try { session.summaryLines = summaryMod?.buildSummary?.(session) ?? []; }
+  catch (err) { console.warn('summary build failed', err); session.summaryLines = []; }
+
+  const coverage = coverageOf(session.segments);
+  session.endedAt = Date.now();
+
+  let saveError = null;
   try {
-    store?.finalizeSession?.({ ...session, coverage: deriveCoverage(session.segments) });
-  } catch (err) { console.warn('session not persisted', err); }
+    if (store?.finalizeSession) {
+      await store.finalizeSession({ ...session, coverage, endedAt: session.endedAt });
+    }
+  } catch (err) {
+    console.warn('session not persisted', err);
+    saveError = err;
+  }
 
-  // Post-class pass. P4 owns these functions; P3 only supplies the session and
-  // renders what comes back. Nothing here is invented in the UI layer.
-  const finished = { ...session, segments: session.segments, flags: session.flags };
-
-  try { finished.vocab = vocabMod?.extractVocab?.(finished) ?? []; }
-  catch (err) { console.warn('vocab extraction failed', err); finished.vocab = []; }
-
-  let summaryLines = [];
-  try { summaryLines = summaryMod?.buildSummary?.(finished) ?? []; }
-  catch (err) { console.warn('summary build failed', err); }
-
-  const coverage = confidence?.deriveCoverage
-    ? confidence.deriveCoverage(session.segments)   // P4's: audio-gated coverage
-    : deriveCoverage(session.segments);
-
+// The post-class pass above already filled session.vocab,
+  // session.summaryLines, coverage and saveError, so this handler only
+  // renders. `unverified()` is the module-scope helper: a local const of the
+  // same name would shadow it and quietly break the persistent honesty chip.
   const isUnverified = unverified();
-
   sheet.render({
-    session: { ...finished, summaryLines },
+    session: { ...session, summaryLines: session.summaryLines },
     coverage,
-    summaryLines,
+    summaryLines: session.summaryLines,
     llmDraft: session.llmDraft,
     confidenceSource: isUnverified
       ? (confidence?.UNVERIFIED_LABEL
           ?? 'segment-level reliability (decoder confidence unavailable)')
       : 'per-token decoder confidence',
-    // Lets the sheet print an explicit unverified banner when confidence is
-    // unavailable. Harmless if sheet.js ignores it.
     unverified: isUnverified,
   });
 
   showState('sheet');
-  $('sheet-status').textContent =
-    `${Math.round(coverage.coverageRatio * 100)}% coverage · ${session.flags.length} flagged`;
+  $('sheet-status').textContent = saveError
+    ? `Save failed: ${saveError?.message ?? saveError}`
+    : `${Math.round(coverage.coverageRatio * 100)}% passed the audio check · ${session.flags.length} flagged`;
   renderHud({ capturing: false });
   window.scrollTo(0, 0);
+});
+
+function finishSaved(saved) {
+  let vocab = Array.isArray(saved.vocab) ? saved.vocab : [];
+  if (vocab.length === 0) {
+    try { vocab = vocabMod?.extractVocab?.(saved) ?? []; }
+    catch (err) { console.warn('vocab extraction failed', err); vocab = []; }
+  }
+  let summaryLines = Array.isArray(saved.summaryLines) ? saved.summaryLines : [];
+  if (summaryLines.length === 0) {
+    try { summaryLines = summaryMod?.buildSummary?.({ ...saved, vocab }) ?? []; }
+    catch (err) { console.warn('summary build failed', err); summaryLines = []; }
+  }
+  const coverage = saved.coverage ?? coverageOf(saved.segments ?? []);
+  return { vocab, summaryLines, coverage };
+}
+
+function showSheet(saved, coverage, summaryLines, statusText) {
+  const unverified = engine?.supportsWordConfidence !== true;
+  sheet.render({
+    session: { ...saved, summaryLines },
+    coverage,
+    summaryLines,
+    llmDraft: saved.llmDraft,
+    confidenceSource: unverified
+      ? (confidence?.UNVERIFIED_LABEL
+          ?? 'segment-level reliability (decoder confidence unavailable)')
+      : 'per-token decoder confidence',
+    unverified,
+  });
+  $('stage').hidden = true;
+  $('sheet-view').hidden = false;
+  $('sheet-status').textContent = statusText;
+  window.scrollTo(0, 0);
+}
+
+$('open-saved-btn').addEventListener('click', async () => {
+  if (capturing) return;
+  if (!store?.listSessions || !store?.getSession) {
+    status('Local storage is not available.');
+    return;
+  }
+  try {
+    const listed = await store.listSessions();
+    if (!listed.length) {
+      status('No saved lesson.');
+      return;
+    }
+    const saved = await store.getSession(listed[0].id);
+    if (!saved) {
+      status('No saved lesson.');
+      return;
+    }
+    const { vocab, summaryLines, coverage } = finishSaved(saved);
+    showSheet(
+      { ...saved, vocab, summaryLines },
+      coverage,
+      summaryLines,
+      `${Math.round(coverage.coverageRatio * 100)}% passed the audio check · ${(saved.flags ?? []).length} flagged`,
+    );
+  } catch (err) {
+    status(`Could not open the saved lesson: ${err?.message ?? err}`);
+  }
+});
+
+$('delete-saved-btn').addEventListener('click', async () => {
+  if (capturing) return;
+  if (!store?.deleteAllSessions) {
+    status('Local storage is not available.');
+    return;
+  }
+  try {
+    await store.deleteAllSessions();
+    status('Saved lessons are gone.');
+  } catch (err) {
+    status(`Could not delete saved lessons: ${err?.message ?? err}`);
+  }
 });
 
 $('print-btn').addEventListener('click', () => sheet.print());
@@ -842,6 +968,9 @@ async function boot() {
   } catch (err) {
     console.warn('[boses] store unavailable:', err.message);
   }
+
+  // 2b — an interrupted lesson is worth surfacing before the first tap.
+  showUnfinishedLessonNotice();
 
   // 3 — P2's hotword list. This is the fetch that used to hang the entire
   //     page. It now has an AbortController AND a race timeout, and the UI

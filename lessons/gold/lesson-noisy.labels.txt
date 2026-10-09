@@ -1,0 +1,13 @@
+3.792279	8.180000	[MIX] Okay class, good morning. Ngayon, pag-aaralan natin ang photosynthesis.
+8.380000	13.420000	[MIX] Ang photosynthesis ay ang proseso kung saan gumagawa ng sariling pagkain ang mga halaman.
+13.760000	18.800000	[EN] Plants need three things: sunlight, water, and carbon dioxide.
+19.080000	22.748088	[MIX] Ang chlorophyll ang magbibigay ng kulay berde sa mga dahon.
+23.259608	26.619608	[MIX] Kinukuha ng chlorophyll ang enerhiya mula sa araw.
+26.875613	29.935613	[MIX] At sa loob ng chloroplast nangyayari ang photosynthesis.
+30.602647	33.062647	[MIX] Ang output nito ay glucose at oxygen.
+33.443333	35.899706	[TL] Kaya mahalaga ang mga halaman sa ating buhay.
+36.490147	41.641667	[TL] Si Jan Ingenhousz ang nakatuklas na kailangan ng liwanag sa prosesong ito.
+42.805515	45.065515	[EN] Write that down in your notebook.
+45.417990	47.734069	[MIX] Remember, walang araw, walang photosynthesis.
+48.330270	54.387181	[MIX] Okay, any questions? Sino ang makakapagsabi kung saan nangyayari ang photosynthesis?
+55.634779	57.578480	[MIX] Very good, Maria! Sa chloroplast.

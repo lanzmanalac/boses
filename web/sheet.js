@@ -209,7 +209,7 @@ export function buildSheet(input) {
     <span class="bar-mini"><i style="width:${pct}%"></i></span>
   </div>
   <p class="meta">
-    ${Math.round(coverage.confidentSec)} s transcribed clearly ·
+    ${Math.round(coverage.confidentSec)} s passed the audio check (words unverified) ·
     ${Math.round(coverage.uncertainSec)} s not captured ·
     ${Math.round(coverage.totalSec)} s total.
     ${input.confidenceSource ? `Confidence from ${esc(input.confidenceSource)}.` : ''}

@@ -9,6 +9,8 @@
 | `fixtures/taglish.fixture.json` | Taglish pass. Clean segments + `_expected` (`lang` per segment, `wordLangs` per word: `TL` / `EN` / `NAME`) |
 | `gold/lesson-clean.transcript.txt` | WER reference (one utterance per line) |
 | `hotwords/lesson.txt` | Hotword list for P1 |
+| `sweep/lesson-snr{20,10,5,0}.wav` | Clean take + recorded room noise at exact SNRs. **Same timing as the clean take**, so `gold/lesson-clean.labels.txt` is the reference for all four — WER vs SNR with no extra labelling |
+| `gold/lesson-noisy.labels.txt` | Per-line timing for the separately recorded noisy take (same words as the clean labels) |
 
 Each fixture file is:
 
@@ -27,6 +29,14 @@ python3 lessons/fixtures/make_fixtures.py
 ```
 
 Reads `gold/lesson-clean.labels.txt` (real recording) if it exists, otherwise `script/lesson.txt` with synthetic timing. Writes all three fixtures and the gold transcript. Stdlib only, deterministic.
+
+## SNR sweep
+
+```bash
+python3 lessons/sweep/make_sweep.py
+```
+
+SNR = speech power inside the labelled lines vs. mean power of `sample/noise-only.wav` (looped, 50 ms crossfade at each seam). Re-measured from the output files: 20.00 / 10.00 / 5.00 / 0.00 dB, no clipping. With the confirmed 16 dB gate in `web/noise.js`, lines reaching the decoder are 13/13 at 20 dB, 8/13 at 10 dB, 0/13 at 5 and 0 dB — the rest become `snr_below_threshold` gaps. Per-segment detail: `GATE-REPORT.md` (`node lessons/tools/gate-report.mjs`). Model results: `docs/P2-audio-capture.md`.
 
 ## Recording (P2)
 

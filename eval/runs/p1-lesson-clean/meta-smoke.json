@@ -1,0 +1,49 @@
+{
+  "model": "Xenova/whisper-tiny",
+  "package": "4.3.1",
+  "device": "webgpu",
+  "loadMs": 12378,
+  "deviceAttempts": [],
+  "progressFiles": [
+    "config.json",
+    "preprocessor_config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "onnx/encoder_model.onnx",
+    "onnx/decoder_model_merged.onnx",
+    "generation_config.json"
+  ],
+  "onnxBefore": [],
+  "onnxAfter": [
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/encoder_model.onnx"
+  ],
+  "cacheDir": "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/",
+  "hotwordPrompt": "photosynthesis, chlorophyll, chloroplast, glucose, carbon dioxide, oxygen, Jan Ingenhousz",
+  "determinism": {
+    "match": true,
+    "first": "Okay, class with morning, mayon, pagga aralana din nang photosynthesis.",
+    "second": "Okay, class with morning, mayon, pagga aralana din nang photosynthesis.",
+    "firstMs": 2045,
+    "secondMs": 914
+  },
+  "firstSpanAfterLoadMs": 2045,
+  "sameSpanAgainMs": 914,
+  "laterDecodeMs": [],
+  "note": "Spans are the human label times, not the live VAD cuts. loadMs is pipeline() including the weight download when the cache was empty. firstSpanAfterLoadMs is the first generate after that load. laterDecodeMs are the remaining spans of the first condition, model already loaded.",
+  "decoded": {
+    "tiny-tl": {
+      "spans": [
+        {
+          "index": 0,
+          "label": "MIX",
+          "text": "Okay, class with morning, mayon, pagga aralana din nang photosynthesis.",
+          "latencyMs": 806
+        }
+      ],
+      "generate": "tl",
+      "hotwords": false
+    }
+  },
+  "scores": []
+}

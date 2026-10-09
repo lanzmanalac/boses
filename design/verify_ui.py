@@ -228,21 +228,60 @@ else:
 # and no console message. This is the exact failure an offline-first product
 # cannot ship with.
 #
-# Depth-aware: `await` inside an async function is fine and expected. Only an
-# `await` evaluated at module scope blocks the wiring.
+# Function-boundary aware. Tracking braces alone is NOT enough: an `await`
+# inside a top-level `if {}` block is still module scope, and a brace-only
+# scanner reports it as "inside a block" and skips it. That is precisely how a
+# module-scope await survived review here once already.
 inline_src = re.search(r'<script type="module">(.*?)</script>', html, re.S)
 if inline_src:
+    # Line numbers must refer to index.html, not to the extracted snippet.
+    # Offset by the newlines preceding the script body, or every finding
+    # points at the wrong line and becomes impossible to act on.
+    script_start = html.index('<script type="module">') + len('<script type="module">')
+    line_offset = html.count("\n", 0, script_start)
     depth = 0
+    fn_depths = []          # stack of depths at which a function body opened
     for i, raw in enumerate(inline_src.group(1).splitlines(), 1):
-        line = re.sub(r"//.*$", "", raw)          # drop line comments
-        line = re.sub(r"'[^']*'|\"[^\"]*\"|`[^`]*`", "", line)  # drop strings
-        if depth == 0 and re.search(r"(^|[=(:,\[]\s*)await\b", line):
-            fails.append(f"index.html:{i} module-scope await — module "
+        line = re.sub(r"//.*$", "", raw)
+        line = re.sub(r"'[^']*'|\"[^\"]*\"|`[^`]*`", "", line)
+
+        # Control-flow keywords also match a call-then-brace shape but do NOT
+        # create a function scope: `if (x) { await ... }` at module level is
+        # still module scope. Without excluding them every guarded await in
+        # the file reports as a false positive.
+        CONTROL = r"(?:if|for|while|switch|catch|do|else|try|finally|function)\b"
+        opens_function = bool(
+            re.search(r"\bfunction\b", line)
+            or re.search(r"=>\s*\{", line)
+            or re.search(rf"\b(?:async\s+)?(?!{CONTROL})\w+\s*\([^)]*\)\s*\{{", line)
+        )
+
+        # Module scope means: not inside any function body. Evaluated against
+        # the state BEFORE this line's braces are applied.
+        in_function = bool(fn_depths) and depth >= fn_depths[-1]
+        if not in_function and re.search(r"(^|[=(:,\[]\s*)await\b", line):
+            fails.append(f"index.html:{i + line_offset} module-scope await — module "
                          f"evaluation blocks on it, so the UI cannot be wired "
                          f"until it settles (this killed every button once)")
-        depth += line.count("{") - line.count("}")
-        if depth < 0:
-            depth = 0
+
+        # Order matters: close scopes that ENDED on this line first, then open
+        # the new one. Pushing before popping cancels itself out, because the
+        # just-pushed depth is immediately <= itself.
+        after = depth + line.count("{") - line.count("}")
+        # A scope closes only when depth drops BELOW its opening depth.
+        # `<=` is wrong: a line with no braces leaves after == fn[-1], which
+        # would pop the scope on the very first line of the body.
+        while fn_depths and after < fn_depths[-1]:
+            fn_depths.pop()
+        opens = line.count("{")
+        closes = line.count("}")
+        # Only push a scope that actually stays open. A one-line arrow such as
+        # `.catch(() => {})` opens and closes together; pushing it left a
+        # phantom scope at depth 0 that never popped, which silently marked
+        # the ENTIRE remainder of the file as "inside a function".
+        if opens_function and opens > closes:
+            fn_depths.append(after)
+        depth = max(0, after)
 
 # ── report ──────────────────────────────────────────────────────────────────
 print(f"elements declared : {len(declared)}")

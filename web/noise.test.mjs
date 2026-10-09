@@ -54,9 +54,15 @@ test('clean take: every labelled line is covered by a decoded segment', () => {
   assert.ok(segs.every((s) => s.endSec - s.startSec <= 12.5), 'segments are force-cut at 12 s');
 });
 
-test('noisy take: speech still passes, short blips are too_short', () => {
+test('noisy take: every labelled line still reaches ASR, short blips are too_short', () => {
   const segs = segmentFile('lesson-noisy');
-  assert.ok(segs.filter((s) => !s.reason).length >= 10);
+  const passed = segs.filter((s) => !s.reason);
+  const labels = readFileSync(new URL('../lessons/gold/lesson-noisy.labels.txt', import.meta.url), 'utf8')
+    .trim().split('\n').map((l) => l.split('\t').map(Number));
+  for (const [start, end] of labels) {
+    const mid = (start + end) / 2;
+    assert.ok(passed.some((s) => s.startSec <= mid && mid <= s.endSec), `noisy line at ${start}s dropped`);
+  }
   for (const s of segs.filter((x) => x.reason === 'too_short')) assert.ok(s.endSec - s.startSec < 1);
 });
 
@@ -99,4 +105,58 @@ test('connectCapture: gated segments skip the engine, others are decoded in orde
   assert.equal(out[0].gaps[0].reason.kind, 'snr_below_threshold');
   assert.equal(out[1].id, 'd2');
   assert.deepEqual(gapSegment({ pcm, startSec: 0, endSec: 0.2, snrDb: 3, reason: 'too_short' }, 'fixture', 'x').words, []);
+});
+
+test('long speech is cut at a quiet dip near the limit, not mid-word', () => {
+  const sr = SAMPLE_RATE;
+  const pcm = new Float32Array(22 * sr);
+  for (let i = 0; i < pcm.length; i++) {
+    const t = i / sr;
+    const speaking = t >= 1 && t < 21 && !(t >= 11.2 && t < 11.4); // 200 ms dip: shorter than a real pause
+    const syllables = 0.5 + 0.5 * Math.sin(2 * Math.PI * 4 * t);  // 4 Hz modulation, like speech
+    pcm[i] = (speaking ? 0.3 * syllables : 0.001) * Math.sin(2 * Math.PI * 300 * t);
+  }
+  const s = new Segmenter();
+  const out = [];
+  s.onSegment((seg) => out.push(seg));
+  for (let i = 0; i < pcm.length; i += 2048) s.push(pcm.subarray(i, i + 2048));
+  s.flush();
+  const first = out[0];
+  assert.ok(first.endSec - first.startSec <= 12.3, 'force-cut at the 12 s limit');
+  assert.ok(Math.abs(first.endSec - 11.3) < 0.4, `cut at ${first.endSec}s, expected the dip at ~11.3 s`);
+  assert.ok(Math.abs(out[1].startSec - first.endSec) < 0.05, 'remainder continues without losing audio');
+});
+
+test('mic warm-up silence does not drag the room floor down', () => {
+  const sr = SAMPLE_RATE;
+  const pcm = new Float32Array(8 * sr);
+  for (let i = 0; i < pcm.length; i++) {
+    const t = i / sr;
+    const room = t < 0.8 ? 0 : 0.002 * Math.sin(2 * Math.PI * 120 * t + 1);  // digital zeros, then a real room
+    const voice = t >= 2 && t < 4 ? 0.2 * (0.5 + 0.5 * Math.sin(2 * Math.PI * 4 * t)) * Math.sin(2 * Math.PI * 300 * t) : 0;
+    pcm[i] = room + voice;
+  }
+  const s = new Segmenter();
+  const out = [];
+  s.onSegment((seg) => out.push(seg));
+  for (let i = 0; i < pcm.length; i += 2048) s.push(pcm.subarray(i, i + 2048));
+  s.flush();
+  assert.ok(s.floorDb >= -75, `floor ${s.floorDb}`);
+  assert.ok(out.every((seg) => seg.snrDb < 60), 'SNR not inflated by a near-zero floor');
+});
+
+test('MicCapture keeps a per-segment gate log for device tests', async () => {
+  const { MicCapture } = await import('./capture.js');
+  const mic = new MicCapture();
+  const pcm = readWav(sample('lesson-noisy'));
+  for (let i = 0; i < pcm.length; i += 2048) mic.segmenter.push(pcm.subarray(i, i + 2048));
+  mic.segmenter.flush();
+  const log = mic.exportLog();
+  assert.ok(log.segments.length > 5);
+  assert.ok(log.segments.some((s) => s.result === 'sent_to_asr'));
+  for (const s of log.segments) {
+    assert.ok(Number.isFinite(s.snrDb) && Number.isFinite(s.floorDb) && s.durSec > 0);
+    assert.match(s.result, /^(sent_to_asr|too_short|snr_below_threshold)$/);
+  }
+  assert.equal(log.settings.snrThresholdDb, 16);
 });
