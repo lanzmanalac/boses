@@ -54,9 +54,15 @@ test('clean take: every labelled line is covered by a decoded segment', () => {
   assert.ok(segs.every((s) => s.endSec - s.startSec <= 12.5), 'segments are force-cut at 12 s');
 });
 
-test('noisy take: speech still passes, short blips are too_short', () => {
+test('noisy take: every labelled line still reaches ASR, short blips are too_short', () => {
   const segs = segmentFile('lesson-noisy');
-  assert.ok(segs.filter((s) => !s.reason).length >= 10);
+  const passed = segs.filter((s) => !s.reason);
+  const labels = readFileSync(new URL('../lessons/gold/lesson-noisy.labels.txt', import.meta.url), 'utf8')
+    .trim().split('\n').map((l) => l.split('\t').map(Number));
+  for (const [start, end] of labels) {
+    const mid = (start + end) / 2;
+    assert.ok(passed.some((s) => s.startSec <= mid && mid <= s.endSec), `noisy line at ${start}s dropped`);
+  }
   for (const s of segs.filter((x) => x.reason === 'too_short')) assert.ok(s.endSec - s.startSec < 1);
 });
 

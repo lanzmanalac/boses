@@ -1,0 +1,794 @@
+{
+  "model": "Xenova/whisper-tiny",
+  "package": "4.3.1",
+  "device": "webgpu",
+  "loadMs": 747,
+  "deviceAttempts": [],
+  "progressFiles": [
+    "config.json",
+    "preprocessor_config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "onnx/encoder_model.onnx",
+    "onnx/decoder_model_merged.onnx",
+    "generation_config.json"
+  ],
+  "onnxBefore": [
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/encoder_model.onnx"
+  ],
+  "onnxAfter": [
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/encoder_model.onnx"
+  ],
+  "cacheDir": "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/",
+  "hotwordPrompt": "photosynthesis, chlorophyll, chloroplast, glucose, carbon dioxide, oxygen, Jan Ingenhousz",
+  "determinism": {
+    "match": true,
+    "first": "Okay, class with morning, mayon, pagga aralana din nang photosynthesis.",
+    "second": "Okay, class with morning, mayon, pagga aralana din nang photosynthesis.",
+    "firstMs": 1057,
+    "secondMs": 854
+  },
+  "firstSpanAfterLoadMs": 1057,
+  "sameSpanAgainMs": 854,
+  "laterDecodeMs": [
+    951,
+    9854,
+    1150,
+    766,
+    731,
+    659,
+    613,
+    884,
+    560,
+    834,
+    935,
+    636
+  ],
+  "note": "Spans are the human label times, not the live VAD cuts. loadMs is pipeline() including the weight download when the cache was empty. firstSpanAfterLoadMs is the first generate after that load. laterDecodeMs are the remaining spans of the first condition, model already loaded.",
+  "decoded": {
+    "tiny-tl": {
+      "spans": [
+        {
+          "index": 0,
+          "label": "MIX",
+          "text": "Okay, class with morning, mayon, pagga aralana din nang photosynthesis.",
+          "latencyMs": 737
+        },
+        {
+          "index": 1,
+          "label": "MIX",
+          "text": "ang photosynthesis ay ang processo ang gumagawanasarilin pa ka enemang halaman.",
+          "latencyMs": 951
+        },
+        {
+          "index": 2,
+          "label": "EN",
+          "text": "plan sa yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong yukong y",
+          "latencyMs": 9854
+        },
+        {
+          "index": 3,
+          "label": "MIX",
+          "text": "Ang klarafil ang mga bibigay ng koolay bad de sa mga dahon.",
+          "latencyMs": 1150
+        },
+        {
+          "index": 4,
+          "label": "MIX",
+          "text": "kino ko hanang klawra filang enerjiya molasa araw.",
+          "latencyMs": 766
+        },
+        {
+          "index": 5,
+          "label": "MIX",
+          "text": "Atsid o vnang klaro plasnang ng e-R ang photo sentisi.",
+          "latencyMs": 731
+        },
+        {
+          "index": 6,
+          "label": "MIX",
+          "text": "ang adput nito agloho sa taksigin.",
+          "latencyMs": 659
+        },
+        {
+          "index": 7,
+          "label": "TL",
+          "text": "Maya mga lang ng halamas ating buay.",
+          "latencyMs": 613
+        },
+        {
+          "index": 8,
+          "label": "TL",
+          "text": "siyan Indian Fish, nga toklas na kalangan ng lum, wana sa process ng ito.",
+          "latencyMs": 884
+        },
+        {
+          "index": 9,
+          "label": "EN",
+          "text": "...and right up, the one in your notebook.",
+          "latencyMs": 560
+        },
+        {
+          "index": 10,
+          "label": "MIX",
+          "text": "Walaong Araw, walaong foto-sintesis.",
+          "latencyMs": 834
+        },
+        {
+          "index": 11,
+          "label": "MIX",
+          "text": "Okay any questions, si nang mapag sa bago sa anang yari ang photosynthesis.",
+          "latencyMs": 935
+        },
+        {
+          "index": 12,
+          "label": "MIX",
+          "text": "Very good na ria sakloroflaya.",
+          "latencyMs": 636
+        }
+      ],
+      "generate": "tl",
+      "hotwords": false
+    },
+    "tiny-unset": {
+      "spans": [
+        {
+          "index": 0,
+          "label": "MIX",
+          "text": "Okay, class with morning, Mayon, Pogga Aralana de Na Foto, Sintese.",
+          "latencyMs": 1045
+        },
+        {
+          "index": 1,
+          "label": "MIX",
+          "text": "The photosynthesis and process of the nuclear weapons are not only in the nuclear weapons,",
+          "latencyMs": 852
+        },
+        {
+          "index": 2,
+          "label": "EN",
+          "text": "plants new three things sunlight water and carbon dioxide",
+          "latencyMs": 673
+        },
+        {
+          "index": 3,
+          "label": "MIX",
+          "text": "And of course I feel I'm a baby guy and I'm cool I better do some more.",
+          "latencyMs": 801
+        },
+        {
+          "index": 4,
+          "label": "MIX",
+          "text": "Thank you for watching.",
+          "latencyMs": 470
+        },
+        {
+          "index": 5,
+          "label": "MIX",
+          "text": "It's an oven-clurple as it is in the photosynthesis.",
+          "latencyMs": 684
+        },
+        {
+          "index": 6,
+          "label": "MIX",
+          "text": "and output is a low-reset oxygen.",
+          "latencyMs": 764
+        },
+        {
+          "index": 7,
+          "label": "TL",
+          "text": "Thank you for watching.",
+          "latencyMs": 580
+        },
+        {
+          "index": 8,
+          "label": "TL",
+          "text": "I hope you enjoyed this video. Thank you for watching. I hope you enjoyed this video.",
+          "latencyMs": 1006
+        },
+        {
+          "index": 9,
+          "label": "EN",
+          "text": "right up, though, and you're notable.",
+          "latencyMs": 598
+        },
+        {
+          "index": 10,
+          "label": "MIX",
+          "text": "I long-arrow with my own photosynthesis.",
+          "latencyMs": 582
+        },
+        {
+          "index": 11,
+          "label": "MIX",
+          "text": "and any questions, see you tomorrow. Thanks for watching. I'm Foto Sintes.",
+          "latencyMs": 842
+        },
+        {
+          "index": 12,
+          "label": "MIX",
+          "text": "Very good Maria, sakloroflaya.",
+          "latencyMs": 605
+        }
+      ],
+      "generate": null,
+      "hotwords": false
+    },
+    "tiny-en": {
+      "spans": [
+        {
+          "index": 0,
+          "label": "MIX",
+          "text": "Okay, class with morning, Mayon, Pogga Aralana de Na Foto, Sintese.",
+          "latencyMs": 818
+        },
+        {
+          "index": 1,
+          "label": "MIX",
+          "text": "The photosynthesis and process of the nuclear weapons are not only in the nuclear weapons,",
+          "latencyMs": 836
+        },
+        {
+          "index": 2,
+          "label": "EN",
+          "text": "plants new three things sunlight water and carbon dioxide",
+          "latencyMs": 547
+        },
+        {
+          "index": 3,
+          "label": "MIX",
+          "text": "And of course I feel I'm a baby guy and I'm cool I better do some more.",
+          "latencyMs": 723
+        },
+        {
+          "index": 4,
+          "label": "MIX",
+          "text": "Thank you for watching.",
+          "latencyMs": 518
+        },
+        {
+          "index": 5,
+          "label": "MIX",
+          "text": "It's an oven-clurple as it is in the photosynthesis.",
+          "latencyMs": 692
+        },
+        {
+          "index": 6,
+          "label": "MIX",
+          "text": "and output is a low-reset oxygen.",
+          "latencyMs": 577
+        },
+        {
+          "index": 7,
+          "label": "TL",
+          "text": "Thank you for watching.",
+          "latencyMs": 445
+        },
+        {
+          "index": 8,
+          "label": "TL",
+          "text": "I hope you enjoyed this video. Thank you for watching. I hope you enjoyed this video.",
+          "latencyMs": 745
+        },
+        {
+          "index": 9,
+          "label": "EN",
+          "text": "right up, though, and you're notable.",
+          "latencyMs": 599
+        },
+        {
+          "index": 10,
+          "label": "MIX",
+          "text": "I long-arrow with my own photosynthesis.",
+          "latencyMs": 630
+        },
+        {
+          "index": 11,
+          "label": "MIX",
+          "text": "and any questions, see you tomorrow. Thanks for watching. I'm Foto Sintes.",
+          "latencyMs": 877
+        },
+        {
+          "index": 12,
+          "label": "MIX",
+          "text": "Very good Maria, sakloroflaya.",
+          "latencyMs": 637
+        }
+      ],
+      "generate": "en",
+      "hotwords": false
+    },
+    "tiny-tl-hotwords": {
+      "spans": [
+        {
+          "index": 0,
+          "label": "MIX",
+          "text": "Okay, class with morning mayon, pagga aralana din nang photosynthesis.",
+          "latencyMs": 1481
+        },
+        {
+          "index": 1,
+          "label": "MIX",
+          "text": "ang photosynthesis ay ang processo, huk sa ang gumagawanasarilin pa ka enamang halaman.",
+          "latencyMs": 1190
+        },
+        {
+          "index": 2,
+          "label": "EN",
+          "text": "plant sa new three things, sunlight, water and carbon dioxide.",
+          "latencyMs": 807
+        },
+        {
+          "index": 3,
+          "label": "MIX",
+          "text": "ang chlorophyll ang magbibigay ng koolay bad desamangadahan.",
+          "latencyMs": 973
+        },
+        {
+          "index": 4,
+          "label": "MIX",
+          "text": "Kinogohan ang chlorophyll ang enerjiya molasa aarao.",
+          "latencyMs": 1190
+        },
+        {
+          "index": 5,
+          "label": "MIX",
+          "text": "Atsid of nang chloroplast ng iyare ang photosynthesis.",
+          "latencyMs": 823
+        },
+        {
+          "index": 6,
+          "label": "MIX",
+          "text": "ang adput neto ay gloho sa taksicin",
+          "latencyMs": 742
+        },
+        {
+          "index": 7,
+          "label": "TL",
+          "text": "yamahalagamang alamas ating buay.",
+          "latencyMs": 735
+        },
+        {
+          "index": 8,
+          "label": "TL",
+          "text": "siyan Ingenhousz ang nato-class na kalangan ng lumwa nagsaprocesum ito.",
+          "latencyMs": 954
+        },
+        {
+          "index": 9,
+          "label": "EN",
+          "text": "na yung nong naggbo.",
+          "latencyMs": 686
+        },
+        {
+          "index": 10,
+          "label": "MIX",
+          "text": "walang aera walang foto sin diseño.",
+          "latencyMs": 677
+        },
+        {
+          "index": 11,
+          "label": "MIX",
+          "text": "Okay any questions? Sin ang mapag sa bagu sa anagaya aril ang photosynthesis.",
+          "latencyMs": 1457
+        },
+        {
+          "index": 12,
+          "label": "MIX",
+          "text": "very good na ria sa chloroflaya.",
+          "latencyMs": 899
+        }
+      ],
+      "generate": "tl",
+      "hotwords": true
+    }
+  },
+  "scores": [
+    {
+      "id": "tiny-tl",
+      "whole": {
+        "label": "tiny-tl",
+        "referencePath": "/Users/lanzmanalac/Boses/boses/lessons/gold/lesson-clean.transcript.txt",
+        "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl.txt",
+        "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+        "wer": {
+          "referenceUnits": 113,
+          "hypothesisUnits": 260,
+          "substitutions": 77,
+          "deletions": 2,
+          "insertions": 149,
+          "errors": 228,
+          "rate": 2.017699115044248
+        },
+        "cer": {
+          "referenceUnits": 613,
+          "hypothesisUnits": 1407,
+          "substitutions": 131,
+          "deletions": 53,
+          "insertions": 847,
+          "errors": 1031,
+          "rate": 1.6818923327895596
+        }
+      },
+      "parts": {
+        "TL": {
+          "label": "tiny-tl-TL",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl.TL.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl.TL.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 20,
+            "hypothesisUnits": 21,
+            "substitutions": 14,
+            "deletions": 1,
+            "insertions": 2,
+            "errors": 17,
+            "rate": 0.85
+          },
+          "cer": {
+            "referenceUnits": 99,
+            "hypothesisUnits": 86,
+            "substitutions": 15,
+            "deletions": 14,
+            "insertions": 1,
+            "errors": 30,
+            "rate": 0.30303030303030304
+          }
+        },
+        "EN": {
+          "label": "tiny-tl-EN",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl.EN.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl.EN.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 15,
+            "hypothesisUnits": 158,
+            "substitutions": 12,
+            "deletions": 0,
+            "insertions": 143,
+            "errors": 155,
+            "rate": 10.333333333333334
+          },
+          "cer": {
+            "referenceUnits": 77,
+            "hypothesisUnits": 919,
+            "substitutions": 44,
+            "deletions": 0,
+            "insertions": 842,
+            "errors": 886,
+            "rate": 11.506493506493506
+          }
+        },
+        "MIX": {
+          "label": "tiny-tl-MIX",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl.MIX.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl.MIX.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 78,
+            "hypothesisUnits": 81,
+            "substitutions": 51,
+            "deletions": 2,
+            "insertions": 5,
+            "errors": 58,
+            "rate": 0.7435897435897436
+          },
+          "cer": {
+            "referenceUnits": 437,
+            "hypothesisUnits": 402,
+            "substitutions": 70,
+            "deletions": 42,
+            "insertions": 7,
+            "errors": 119,
+            "rate": 0.2723112128146453
+          }
+        }
+      }
+    },
+    {
+      "id": "tiny-unset",
+      "whole": {
+        "label": "tiny-unset",
+        "referencePath": "/Users/lanzmanalac/Boses/boses/lessons/gold/lesson-clean.transcript.txt",
+        "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-unset.txt",
+        "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+        "wer": {
+          "referenceUnits": 113,
+          "hypothesisUnits": 127,
+          "substitutions": 91,
+          "deletions": 1,
+          "insertions": 15,
+          "errors": 107,
+          "rate": 0.9469026548672567
+        },
+        "cer": {
+          "referenceUnits": 613,
+          "hypothesisUnits": 544,
+          "substitutions": 233,
+          "deletions": 88,
+          "insertions": 19,
+          "errors": 340,
+          "rate": 0.5546492659053833
+        }
+      },
+      "parts": {
+        "TL": {
+          "label": "tiny-unset-TL",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-unset.TL.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-unset.TL.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 20,
+            "hypothesisUnits": 20,
+            "substitutions": 20,
+            "deletions": 0,
+            "insertions": 0,
+            "errors": 20,
+            "rate": 1
+          },
+          "cer": {
+            "referenceUnits": 99,
+            "hypothesisUnits": 86,
+            "substitutions": 64,
+            "deletions": 16,
+            "insertions": 3,
+            "errors": 83,
+            "rate": 0.8383838383838383
+          }
+        },
+        "EN": {
+          "label": "tiny-unset-EN",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-unset.EN.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-unset.EN.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 15,
+            "hypothesisUnits": 16,
+            "substitutions": 7,
+            "deletions": 0,
+            "insertions": 1,
+            "errors": 8,
+            "rate": 0.5333333333333333
+          },
+          "cer": {
+            "referenceUnits": 77,
+            "hypothesisUnits": 77,
+            "substitutions": 12,
+            "deletions": 3,
+            "insertions": 3,
+            "errors": 18,
+            "rate": 0.23376623376623376
+          }
+        },
+        "MIX": {
+          "label": "tiny-unset-MIX",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-unset.MIX.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-unset.MIX.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 78,
+            "hypothesisUnits": 91,
+            "substitutions": 64,
+            "deletions": 1,
+            "insertions": 14,
+            "errors": 79,
+            "rate": 1.0128205128205128
+          },
+          "cer": {
+            "referenceUnits": 437,
+            "hypothesisUnits": 381,
+            "substitutions": 156,
+            "deletions": 70,
+            "insertions": 14,
+            "errors": 240,
+            "rate": 0.5491990846681922
+          }
+        }
+      }
+    },
+    {
+      "id": "tiny-en",
+      "whole": {
+        "label": "tiny-en",
+        "referencePath": "/Users/lanzmanalac/Boses/boses/lessons/gold/lesson-clean.transcript.txt",
+        "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-en.txt",
+        "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+        "wer": {
+          "referenceUnits": 113,
+          "hypothesisUnits": 127,
+          "substitutions": 91,
+          "deletions": 1,
+          "insertions": 15,
+          "errors": 107,
+          "rate": 0.9469026548672567
+        },
+        "cer": {
+          "referenceUnits": 613,
+          "hypothesisUnits": 544,
+          "substitutions": 233,
+          "deletions": 88,
+          "insertions": 19,
+          "errors": 340,
+          "rate": 0.5546492659053833
+        }
+      },
+      "parts": {
+        "TL": {
+          "label": "tiny-en-TL",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-en.TL.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-en.TL.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 20,
+            "hypothesisUnits": 20,
+            "substitutions": 20,
+            "deletions": 0,
+            "insertions": 0,
+            "errors": 20,
+            "rate": 1
+          },
+          "cer": {
+            "referenceUnits": 99,
+            "hypothesisUnits": 86,
+            "substitutions": 64,
+            "deletions": 16,
+            "insertions": 3,
+            "errors": 83,
+            "rate": 0.8383838383838383
+          }
+        },
+        "EN": {
+          "label": "tiny-en-EN",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-en.EN.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-en.EN.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 15,
+            "hypothesisUnits": 16,
+            "substitutions": 7,
+            "deletions": 0,
+            "insertions": 1,
+            "errors": 8,
+            "rate": 0.5333333333333333
+          },
+          "cer": {
+            "referenceUnits": 77,
+            "hypothesisUnits": 77,
+            "substitutions": 12,
+            "deletions": 3,
+            "insertions": 3,
+            "errors": 18,
+            "rate": 0.23376623376623376
+          }
+        },
+        "MIX": {
+          "label": "tiny-en-MIX",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-en.MIX.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-en.MIX.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 78,
+            "hypothesisUnits": 91,
+            "substitutions": 64,
+            "deletions": 1,
+            "insertions": 14,
+            "errors": 79,
+            "rate": 1.0128205128205128
+          },
+          "cer": {
+            "referenceUnits": 437,
+            "hypothesisUnits": 381,
+            "substitutions": 156,
+            "deletions": 70,
+            "insertions": 14,
+            "errors": 240,
+            "rate": 0.5491990846681922
+          }
+        }
+      }
+    },
+    {
+      "id": "tiny-tl-hotwords",
+      "whole": {
+        "label": "tiny-tl-hotwords",
+        "referencePath": "/Users/lanzmanalac/Boses/boses/lessons/gold/lesson-clean.transcript.txt",
+        "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl-hotwords.txt",
+        "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+        "wer": {
+          "referenceUnits": 113,
+          "hypothesisUnits": 107,
+          "substitutions": 60,
+          "deletions": 10,
+          "insertions": 4,
+          "errors": 74,
+          "rate": 0.6548672566371682
+        },
+        "cer": {
+          "referenceUnits": 613,
+          "hypothesisUnits": 576,
+          "substitutions": 77,
+          "deletions": 53,
+          "insertions": 16,
+          "errors": 146,
+          "rate": 0.23817292006525284
+        }
+      },
+      "parts": {
+        "TL": {
+          "label": "tiny-tl-hotwords-TL",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl-hotwords.TL.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl-hotwords.TL.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 20,
+            "hypothesisUnits": 15,
+            "substitutions": 8,
+            "deletions": 6,
+            "insertions": 1,
+            "errors": 15,
+            "rate": 0.75
+          },
+          "cer": {
+            "referenceUnits": 99,
+            "hypothesisUnits": 89,
+            "substitutions": 7,
+            "deletions": 13,
+            "insertions": 3,
+            "errors": 23,
+            "rate": 0.23232323232323232
+          }
+        },
+        "EN": {
+          "label": "tiny-tl-hotwords-EN",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl-hotwords.EN.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl-hotwords.EN.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 15,
+            "hypothesisUnits": 14,
+            "substitutions": 6,
+            "deletions": 2,
+            "insertions": 1,
+            "errors": 9,
+            "rate": 0.6
+          },
+          "cer": {
+            "referenceUnits": 77,
+            "hypothesisUnits": 66,
+            "substitutions": 12,
+            "deletions": 11,
+            "insertions": 0,
+            "errors": 23,
+            "rate": 0.2987012987012987
+          }
+        },
+        "MIX": {
+          "label": "tiny-tl-hotwords-MIX",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl-hotwords.MIX.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-lesson-clean/tiny-tl-hotwords.MIX.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 78,
+            "hypothesisUnits": 78,
+            "substitutions": 43,
+            "deletions": 4,
+            "insertions": 4,
+            "errors": 51,
+            "rate": 0.6538461538461539
+          },
+          "cer": {
+            "referenceUnits": 437,
+            "hypothesisUnits": 421,
+            "substitutions": 58,
+            "deletions": 29,
+            "insertions": 13,
+            "errors": 100,
+            "rate": 0.2288329519450801
+          }
+        }
+      }
+    }
+  ]
+}

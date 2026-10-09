@@ -42,7 +42,9 @@
   </div>
 
   <!-- ── caption stage ──────────────────────────────────────────────────── -->
-  <main class="stage">
+  <!-- id="stage": the end-class handler looks this up to swap caption view for
+       the study sheet. Without it, $('stage') is null and End class throws. -->
+  <main class="stage" id="stage">
     <div class="captions" id="captions"></div>
 
     <div class="jump" id="jump" hidden>
@@ -110,6 +112,43 @@ let captureModule = null;
 let mic = null;      // live MicCapture instance
 let bridge = null;   // { onSegment } from connectCapture
 
+// ── P4 and P2 modules ───────────────────────────────────────────────────────
+// These are the post-class pass and the noise gate. Each is optional at
+// startup: if one is missing the feature degrades rather than the app dying.
+// Everything is resolved lazily and failure is reported in the status line.
+let confidence = null;   // P4 gateSegment + deriveCoverage + UNVERIFIED_LABEL
+let taglish = null;      // P4 tagSegment
+let vocabMod = null;     // P4 extractVocab
+let summaryMod = null;   // P4 buildSummary
+let hotwords = [];       // P2 per-lesson vocabulary list
+
+for (const [name, load] of [
+  ['confidence', () => import('./confidence.js')],
+  ['taglish', () => import('./taglish.js')],
+  ['vocab', () => import('./vocab.js')],
+  ['summary', () => import('./summary.js')],
+]) {
+  try {
+    const mod = await load();
+    if (name === 'confidence') confidence = mod;
+    if (name === 'taglish') taglish = mod;
+    if (name === 'vocab') vocabMod = mod;
+    if (name === 'summary') summaryMod = mod;
+  } catch {
+    console.warn(`[boses] ${name}.js not available`);
+  }
+}
+
+// P2's hotword list. P1's engine biases decoding toward these, which is how
+// 'chlorophyll' stops being heard as 'chlorine'. Sent to the engine, never to
+// the UI — the UI must not substitute a term the speaker never said.
+try {
+  const res = await fetch('../lessons/hotwords/lesson.txt');
+  if (res.ok) {
+    hotwords = (await res.text()).split('\n').map((w) => w.trim().toLowerCase()).filter(Boolean);
+  }
+} catch { /* no hotword file; the engine simply runs without biasing */ }
+
 // ── flags ───────────────────────────────────────────────────────────────────
 // Route through P4's store when it exists; fall back to in-memory so the
 // feature is never silently absent.
@@ -138,6 +177,17 @@ const wantsFixture = params.has('fixture');
 
 let engineIsLive = false;   // true only when a real mic feeds a real model
 let stopWhenEnded = null;   // releases the live stream when End class is pressed
+
+// P2 owns this number. 12 dB is their measured default (speech 18-38 dB,
+// classroom babble 7-11 dB). Overridable for a noisier room:
+//   ?snr=10  or  localStorage 'boses.snrThresholdDb'
+let gateSnrThresholdDb = 12;
+try {
+  const q = new URLSearchParams(location.search).get('snr');
+  if (q && Number.isFinite(Number(q))) gateSnrThresholdDb = Number(q);
+  const saved = Number(localStorage.getItem('boses.snrThresholdDb'));
+  if (!q && Number.isFinite(saved) && saved > 0) gateSnrThresholdDb = saved;
+} catch { /* no storage */ }
 
 if (wantsFixture) {
   try {
@@ -230,8 +280,42 @@ $('start-btn').addEventListener('click', async () => {
 
   // One path for both modes: consume { onSegment } and render. The only
   // difference is where segments come from.
+  // P4 owns gateSegment(); P2 owns the thresholds. The gate runs AFTER the
+  // recognizer returns and BEFORE anything else sees the segment, so the
+  // screen, the store and the study sheet all see the same gated result.
+  // One gate, one answer — never let the view invent its own uncertainty.
+  const gateOptions = {
+    snrThresholdDb: gateSnrThresholdDb,   // P2's measured value
+    minDurationSec: 0.3,
+    supportsWordConfidence: engine?.supportsWordConfidence === true,
+    repetitionDetected: false,            // P2 flags it on the segment itself
+    wordConfidenceThreshold: 0.55,
+  };
+
+  const gateSegment = (seg) => {
+    if (!confidence?.gateSegment) return seg;
+    try {
+      const gated = confidence.gateSegment(seg, {
+        ...gateOptions,
+        repetitionDetected: seg.repetitionDetected === true,
+      });
+      // Taglish labels annotate recognized words. They never rewrite text —
+      // a Taglish sentence the teacher spoke stays Taglish.
+      if (taglish?.tagSegment && gated.words?.length) {
+        gated.taglish = taglish.tagSegment(gated, { tlTerms: [], enTerms: [] });
+      }
+      return gated;
+    } catch (err) {
+      // A gate that throws must not silently drop the segment. Show it as-is
+      // rather than pretending it was verified.
+      console.warn('[boses] gateSegment failed, showing ungated segment', err);
+      return seg;
+    }
+  };
+
   const consume = (bridgeLike) => new Promise((resolve) => {
-    bridgeLike.onSegment((seg) => {
+    bridgeLike.onSegment((raw) => {
+      const seg = gateSegment(raw);
       session.segments.push(seg);
       captions.appendSegment(seg);
       // Checkpoint on arrival, not at the end — a phone that dies at minute
@@ -259,9 +343,14 @@ $('start-btn').addEventListener('click', async () => {
       engineIsLive = true;
 
       // P2's bridge gates on SNR before the decoder ever runs. That is the
-      // behaviour that keeps the gap promise honest in a loud room.
-      bridge = captureModule.connectCapture(mic, engine, {});
-      status('Listening. Keep this screen on. Speak normally.');
+      // behaviour that keeps the gap promise honest in a loud room. Hotwords
+      // go to the DECODER only — the UI never substitutes a term the speaker
+      // did not actually say.
+      bridge = captureModule.connectCapture(mic, engine, {
+        hotwords,
+        snrThresholdDb: gateSnrThresholdDb,
+      });
+      status(`Listening. Keep this screen on.${hotwords.length ? ` Hotwords: ${hotwords.length}.` : ''}`);
       hud.render({ online: navigator.onLine, capturing: true, engine: engine.id,
                    ...mic.signalQuality() });
 
@@ -305,26 +394,47 @@ $('end-btn').addEventListener('click', () => {
   session.flags = captions.getFlags();
 
   // Persist the finished session. P4 owns the schema; a failure here must not
-  // lose the sheet the student is looking at.
+  // lose the sheet the student is looking on.
   try {
     store?.finalizeSession?.({ ...session, coverage: deriveCoverage(session.segments) });
   } catch (err) { console.warn('session not persisted', err); }
 
-  // Vocab + summary belong to P4. Render whatever exists; never invent.
-  session.vocab = [];
-  try { session.vocab = store?.extractVocab?.(session) ?? []; } catch {}
+  // Post-class pass. P4 owns these functions; P3 only supplies the session and
+  // renders what comes back. Nothing here is invented in the UI layer.
+  const finished = {
+    ...session,
+    segments: session.segments,
+    flags: session.flags,
+  };
 
-  const coverage = deriveCoverage(session.segments);
+  try { finished.vocab = vocabMod?.extractVocab?.(finished) ?? []; }
+  catch (err) { console.warn('vocab extraction failed', err); finished.vocab = []; }
+
+  let summaryLines = [];
+  try { summaryLines = summaryMod?.buildSummary?.(finished) ?? []; }
+  catch (err) { console.warn('summary build failed', err); }
+
+  const coverage = confidence?.deriveCoverage
+    ? confidence.deriveCoverage(session.segments)   // P4's: audio-gated coverage
+    : deriveCoverage(session.segments);
+
+  // ADR-0002 is still open: P1's engine exposes no per-word confidence, so a
+  // gap here means "not reliably captured", NOT "the model was unsure". Say
+  // which one on the page, using P4's own wording.
+  const unverified = engine?.supportsWordConfidence !== true;
+
   sheet.render({
-    session,
+    session: { ...finished, summaryLines },
     coverage,
-    summaryLines: session.summaryLines,
+    summaryLines,
     llmDraft: session.llmDraft,
-    // ADR-0002: if the decoder exposes no per-word confidence, the sheet must
-    // say so rather than implying the model knew what it did not know.
-    confidenceSource: engine?.supportsWordConfidence === false
-      ? 'segment-level reliability (decoder confidence unavailable)'
+    confidenceSource: unverified
+      ? (confidence?.UNVERIFIED_LABEL
+          ?? 'segment-level reliability (decoder confidence unavailable)')
       : 'per-token decoder confidence',
+    // Lets the sheet print an explicit unverified banner when confidence is
+    // unavailable. Harmless if sheet.js ignores it.
+    unverified,
   });
 
   $('stage').hidden = true;
