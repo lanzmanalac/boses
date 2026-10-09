@@ -33,9 +33,10 @@ Gate checks, cheapest first: **too short** (< 0.3 s → `too_short`), **too quie
 
 | Setting | Value | Evidence |
 | --- | --- | --- |
-| SNR gate | **16 dB** | All 13 lines of both real takes pass. The 10 dB sweep — where every model is ~100% wrong — drops from 10/13 lines passing (at 12 dB) to 3/13. Noise-only babble measures 7–11 dB. |
+| SNR gate | **16 dB** | All 13 lines of both real takes pass. On the 10 dB sweep — where every model is ~100% wrong — 16 dB gates more of it than 12 dB did (8/13 lines pass with the final pause settings; 10/13 at 12 dB). Noise-only babble measures 7–11 dB. |
 | Minimum duration | **0.3 s** | Coughs/taps in the noise-only clip and noisy take are 0.2–0.6 s; no real line is shorter. |
-| Pause that ends an utterance | **0.5 s** | 0.35 s cut lines at commas into fragments. 0.5 s keeps whole lines: whisper-base WER 62% → 46% (clean), 75% → 58% (noisy); Filipino model unchanged. Pieces average 6–7 s, max 12 s (force-cut). |
+| Pause that ends an utterance | **0.5 s**, counted when the level is 5 dB above the room **or 22 dB below the speaker's own peak** | 0.35 s cut lines at commas (whisper-base WER 62% vs 46% at 0.5 s). In a quiet room breath and echo kept pauses above the room floor, so pieces ran to the 12 s limit (seen live too). The 22 dB rule gives a caption every ~4–6 s; cost: clean WER 57% vs 47% with 12 s pieces, noisy unchanged (58%). |
+| Longest piece | **12 s**, cut at the quietest moment of the last 1.5 s | Avoids splitting a word when someone talks without pausing. |
 | Room calibration | first **1 s** after Start | Floor = 15th percentile of the last 5 s afterwards, so it follows the room. |
 
 All of these live in `DEFAULTS` in `web/noise.js`. Per-segment evidence for every recording: `lessons/GATE-REPORT.md` (`node lessons/tools/gate-report.mjs`).
@@ -52,23 +53,25 @@ All of these live in `DEFAULTS` in `web/noise.js`. Per-segment evidence for ever
 
 All numbers from P2's real recordings. ASR numbers were run in Python (PyTorch, language forced to Tagalog) on the 13 human-labelled lines, punctuation and case ignored; hallucination-loop lines are excluded from WER and counted separately. **Browser (transformers.js) numbers still need to be measured by P1.**
 
-**Gate — how much reaches the decoder** (confirmed settings)
+**Gate — how much reaches the decoder** (confirmed settings; full detail in `lessons/GATE-REPORT.md`)
 
 | Audio | Lines reaching decoder | Notes |
 | --- | --- | --- |
-| Clean take | 13 / 13 | 7 segments |
+| Clean take | 13 / 13 | 12 segments |
 | Noisy take (fan + chatter) | 13 / 13 | 2 short blips gated |
 | Noise only (no speech, 31 s) | **0** of 5 bursts | babble 7–11 dB → under the gate |
 | Sweep 20 dB | 13 / 13 | |
-| Sweep 10 dB | 3 / 13 | rest are gaps — ASR is ~100% wrong here |
+| Sweep 10 dB | 8 / 13 | rest are gaps — ASR is ~100% wrong at this level |
 | Sweep 5 dB / 0 dB | 0 / 13 | |
 
 **End-to-end (gate segments → ASR, whole transcript)**
 
 | Audio | whisper-base | whisper-small-fsc (Filipino) |
 | --- | --- | --- |
-| Clean take | 46% WER / 14% CER | 39% / 16% |
-| Real noisy take | 58% / 21% | 46% / 16% |
+| Clean take | 57% WER / 18% CER | 39% / 16%* |
+| Real noisy take | 58% / 21% | 46% / 16%* |
+
+\* Filipino model measured with the earlier 0.5 s-only pause setting.
 
 **Word error rate by model** (per human-labelled line)
 

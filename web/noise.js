@@ -34,6 +34,9 @@ export const DEFAULTS = Object.freeze({
   snrThresholdDb: 16,       // measured: all 13 real lines pass; 10 dB mix (ASR ~100% wrong) mostly gated; babble 7-11 dB
   startMarginDb: 9,         // frame this far above the floor starts an utterance
   stopMarginDb: 5,          // ...and below this ends it (hysteresis)
+  pauseDropDb: 22,          // ...or this far below the utterance's own peak (quiet rooms: breath/echo
+                            //    keep pauses above floor+5, which forced 12 s cuts on the real takes).
+                            //    22 dB: captions every ~4-6 s; whisper-base WER clean 57% (47% at 12 s cuts), noisy 58% (same)
   hangoverSec: 0.5,         // measured: 0.35 cut lines at commas; 0.5 cut whisper-base WER 62%->46% (clean)
   preRollSec: 0.2,          // audio kept before onset so first syllables aren't clipped
   postRollSec: 0.15,
@@ -42,6 +45,8 @@ export const DEFAULTS = Object.freeze({
   floorWindowSec: 5,        // noise floor = low percentile of the last N seconds
   floorPercentile: 0.15,
   calibrationSec: 1.0,      // first second sets the floor; ask the room for quiet
+  minFloorDb: -75,          // a real room is louder than this; lower means the mic was still waking
+                            //    up (seen live: -87 dB), which inflates SNR and hides pauses
   steadyStdDb: 3,           // frame-level std below this = unmodulated noise
   highPassHz: 100,
 });
@@ -164,11 +169,11 @@ export class Segmenter {
     if (this.history.length > o.floorWindowSec * framesPerSec) this.history.shift();
     if (!this.calibrated) {
       if (this.frameIndex >= o.calibrationSec * framesPerSec) this.calibrated = true;
-      this.floorDb = percentile(this.history, 0.5);
+      this.floorDb = Math.max(o.minFloorDb, percentile(this.history, 0.5));
       this._remember(f);
       return; // no utterances during calibration
     }
-    if (!this.active) this.floorDb = percentile(this.history, o.floorPercentile);
+    if (!this.active) this.floorDb = Math.max(o.minFloorDb, percentile(this.history, o.floorPercentile));
 
     if (!this.active) {
       if (db > this.floorDb + o.startMarginDb) {
@@ -184,9 +189,35 @@ export class Segmenter {
     const a = this.active;
     a.frames.push(f);
     a.db.push(db);
-    a.quiet = db < this.floorDb + o.stopMarginDb ? a.quiet + 1 : 0;
+    a.peak = Math.max(a.peak ?? -Infinity, db);
+    const pause = db < this.floorDb + o.stopMarginDb || db < a.peak - o.pauseDropDb;
+    a.quiet = pause ? a.quiet + 1 : 0;
     const durSec = a.frames.length / framesPerSec;
-    if (a.quiet >= o.hangoverSec * framesPerSec || durSec >= o.maxSegmentSec) this._close();
+    if (a.quiet >= o.hangoverSec * framesPerSec) this._close();
+    else if (durSec >= o.maxSegmentSec) this._forceCut();
+  }
+
+  /**
+   * Speech ran past maxSegmentSec with no real pause. Cut at the quietest
+   * moment of the last 1.5 s (between words, not through one) and carry the
+   * remainder straight into the next utterance.
+   */
+  _forceCut() {
+    const a = /** @type {NonNullable<Segmenter['active']>} */ (this.active);
+    const look = Math.round(1.5 * SAMPLE_RATE / FRAME);
+    const off = a.frames.length - a.db.length; // pre-roll frames have no dB entry
+    let best = a.db.length - 1;
+    let min = Infinity;
+    for (let i = Math.max(1, a.db.length - look); i < a.db.length - 1; i++) {
+      const v = (a.db[i - 1] + a.db[i] + a.db[i + 1]) / 3;
+      if (v < min) { min = v; best = i; }
+    }
+    const tail = { frames: a.frames.slice(off + best), db: a.db.slice(best), startFrame: a.startFrame + off + best, quiet: 0 };
+    a.frames = a.frames.slice(0, off + best);
+    a.db = a.db.slice(0, best);
+    a.quiet = 0;
+    this._close();
+    this.active = tail;
   }
 
   /** @param {Float32Array} f */
