@@ -197,23 +197,17 @@ export function buildSheet(input) {
     </li>`).join('')}</ul>`
   : '<p class="meta">Nothing was flagged, and nothing was missed. Coverage was full.</p>'}
 
-  <h2>4 · How much of this record is solid</h2>
-  ${input.unverified ? `
-  <p class="meta"><span class="draft-mark">Unverified text</span></p>
-  <p class="meta">The words below were <strong>not</strong> checked against the
-  recognizer's own confidence — it does not expose per-word scores. Bracketed
-  marks mean this part of the lesson was not reliably captured, not that the
-  model felt unsure. Compare with the recording before relying on them.</p>` : ''}
+  <h2>4 · How much time is shown as words</h2>
   <div class="coverage">
     <span class="num">${pct}%</span>
     <span class="bar-mini"><i style="width:${pct}%"></i></span>
   </div>
   <p class="meta">
-    ${Math.round(coverage.confidentSec)} s passed the audio check (words unverified) ·
-    ${Math.round(coverage.uncertainSec)} s not captured ·
+    This percent is time shown as words. Those words were not checked for accuracy.
+    ${Math.round(coverage.confidentSec)} s shown as words ·
+    ${Math.round(coverage.uncertainSec)} s in gaps ·
     ${Math.round(coverage.totalSec)} s total.
-    ${input.confidenceSource ? `Confidence from ${esc(input.confidenceSource)}.` : ''}
-    Anything outside the filled bar was not reliably heard.
+    The rest of the time is in gaps.
   </p>
 
   <h2>5 · Verbatim transcript</h2>

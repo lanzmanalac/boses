@@ -10,21 +10,57 @@ import { env, pipeline } from '@huggingface/transformers';
 import { buildHotwordPrompt } from '../web/hotwords.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const MODEL_ID = 'Xenova/whisper-tiny';
+
+function argValue(flag) {
+  const index = process.argv.indexOf(flag);
+  if (index === -1) return null;
+  const value = process.argv[index + 1];
+  if (!value || value.startsWith('--')) throw new Error(`${flag} needs a value`);
+  return value;
+}
+
+function repoPath(flag, value) {
+  if (value.startsWith('/') || value.includes('..')) throw new Error(`${flag} must stay inside the repo`);
+  return join(ROOT, value);
+}
+
+const modelArg = argValue('--model');
+const outArg = argValue('--out');
+const wavArg = argValue('--wav');
+const labelsArg = argValue('--labels');
+const goldArg = argValue('--gold');
+const tlPair = process.argv.includes('--tl-pair');
+if ((modelArg || tlPair || wavArg || labelsArg || goldArg) && !outArg) {
+  throw new Error('--out is required with --model, --tl-pair, --wav, --labels, or --gold so eval/runs/p1-lesson-clean stays the tiny run');
+}
+if (outArg && (outArg.startsWith('/') || outArg.includes('..'))) {
+  throw new Error('--out must stay inside the repo');
+}
+
+const MODEL_ID = modelArg ?? 'Xenova/whisper-tiny';
 const SAMPLE_RATE = 16000;
 const PROMPT_TOKEN_CAP = 223;
-const WAV = join(ROOT, 'lessons/sample/lesson-clean.wav');
-const LABELS = join(ROOT, 'lessons/gold/lesson-clean.labels.txt');
-const GOLD = join(ROOT, 'lessons/gold/lesson-clean.transcript.txt');
+const WAV = wavArg ? repoPath('--wav', wavArg) : join(ROOT, 'lessons/sample/lesson-clean.wav');
+const LABELS = labelsArg ? repoPath('--labels', labelsArg) : join(ROOT, 'lessons/gold/lesson-clean.labels.txt');
+const GOLD = goldArg
+  ? repoPath('--gold', goldArg)
+  : labelsArg
+    ? null
+    : join(ROOT, 'lessons/gold/lesson-clean.transcript.txt');
 const HOTWORDS = join(ROOT, 'lessons/hotwords/lesson.txt');
-const OUT = join(ROOT, 'eval/runs/p1-lesson-clean');
+const OUT = join(ROOT, outArg ?? 'eval/runs/p1-lesson-clean');
 
-const CONDITIONS = [
-  { id: 'tiny-tl', language: 'tl', hotwords: false },
-  { id: 'tiny-unset', language: null, hotwords: false },
-  { id: 'tiny-en', language: 'en', hotwords: false },
-  { id: 'tiny-tl-hotwords', language: 'tl', hotwords: true },
-];
+const CONDITIONS = tlPair
+  ? [
+      { id: 'tl', language: 'tl', hotwords: false },
+      { id: 'tl-hotwords', language: 'tl', hotwords: true },
+    ]
+  : [
+      { id: 'tiny-tl', language: 'tl', hotwords: false },
+      { id: 'tiny-unset', language: null, hotwords: false },
+      { id: 'tiny-en', language: 'en', hotwords: false },
+      { id: 'tiny-tl-hotwords', language: 'tl', hotwords: true },
+    ];
 
 const smoke = process.argv.includes('--smoke');
 
@@ -59,15 +95,15 @@ function readPcm16(path) {
 
 function loadSpans() {
   const labels = readFileSync(LABELS, 'utf8').trim().split('\n');
-  const gold = readFileSync(GOLD, 'utf8').trim().split('\n');
-  if (labels.length !== gold.length) {
+  const gold = GOLD ? readFileSync(GOLD, 'utf8').trim().split('\n') : null;
+  if (gold && labels.length !== gold.length) {
     throw new Error(`label lines ${labels.length} != gold lines ${gold.length}`);
   }
   return labels.map((line, index) => {
     const match = line.match(/^(\d+(?:\.\d+)?)\t(\d+(?:\.\d+)?)\t\[(TL|EN|MIX)\] (.*)$/);
     if (!match) throw new Error(`bad label line ${index + 1}`);
     const text = match[4];
-    if (text !== gold[index]) throw new Error(`gold line ${index + 1} does not match the label text`);
+    if (gold && text !== gold[index]) throw new Error(`gold line ${index + 1} does not match the label text`);
     return {
       index,
       startSec: Number(match[1]),
@@ -229,7 +265,9 @@ for (const condition of conditions) {
       writeText(`${condition.id}.${label}.hyp.txt`, picked.map((span) => byIndex.get(span.index) ?? ''));
       writeText(`${condition.id}.${label}.gold.txt`, picked.map((span) => span.gold));
     }
-    const whole = scoreFile(GOLD, join(OUT, `${condition.id}.txt`), condition.id);
+    const wholeGold = GOLD ?? join(OUT, 'gold.txt');
+    if (!GOLD) writeText('gold.txt', spans.map((span) => span.gold));
+    const whole = scoreFile(wholeGold, join(OUT, `${condition.id}.txt`), condition.id);
     const parts = {};
     for (const label of ['TL', 'EN', 'MIX']) {
       parts[label] = scoreFile(

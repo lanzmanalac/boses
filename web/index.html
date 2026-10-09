@@ -159,9 +159,7 @@
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v16h-6M10 8l4 4-4 4M4 4v16"/></svg>
       End class → sheet
     </button>
-    <!-- Saved-lesson recovery and deletion, wired by the integration pass.
-         Kept here (rather than only in the saved-lessons view) because a
-         lesson that died at minute 18 must be reachable in one tap. -->
+    <select id="saved-lessons" aria-label="Saved lessons"></select>
     <button class="btn" id="open-saved-btn">
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 10h16M9 15h6"/></svg>
       Open saved lesson
@@ -325,8 +323,27 @@ function coverageOf(segments) {
 }
 
 function setSavedLessonButtonsHidden(hidden) {
+  $('saved-lessons').hidden = hidden;
   $('open-saved-btn').hidden = hidden;
   $('delete-saved-btn').hidden = hidden;
+}
+
+async function refreshSavedLessons() {
+  const sel = $('saved-lessons');
+  sel.replaceChildren();
+  if (!store?.listSessions) return [];
+  try {
+    const listed = await store.listSessions();
+    for (const row of listed) {
+      const opt = document.createElement('option');
+      opt.value = row.id;
+      opt.textContent = (row.title && String(row.title).trim()) || row.id;
+      sel.appendChild(opt);
+    }
+    return listed;
+  } catch {
+    return [];
+  }
 }
 
 // ── engine ──────────────────────────────────────────────────────────────────
@@ -404,7 +421,7 @@ function showUnfinishedLessonNotice() {
   // embedded webviews — and a module-level await that never settles is exactly
   // what silently killed every button once already. Now it runs inside boot(),
   // after the UI is wired, and it cannot block anything.
-  store?.listSessions?.().then((listed) => {
+  refreshSavedLessons().then((listed) => {
     if (listed?.[0] && listed[0].endedAt == null) {
       const prev = $('status').textContent;
       status(prev
@@ -544,17 +561,22 @@ async function beginLesson() {
   $('start-btn').disabled = true;
   $('setup-start').disabled = true;
   capturing = true;
-showState('live');
-      // Saved-lesson buttons are for a finished or interrupted lesson, never
-      // while one is running.
-      setSavedLessonButtonsHidden?.(true);
-      renderHud({ capturing: true });
+  showState('live');
+  // Saved-lesson buttons are for a finished or interrupted lesson, never
+  // while one is running.
+  setSavedLessonButtonsHidden(true);
+  renderHud({ capturing: true });
 
+  let beginError = null;
   try {
     if (store?.beginSession) {
       await store.beginSession({ id: session.id, startedAt: session.startedAt, title: session.title });
     }
-  } catch (err) { console.warn('session not opened in store', err); }
+  } catch (err) {
+    console.warn('session not opened in store', err);
+    beginError = err;
+    status(`Could not open this lesson in storage. ${err?.message ?? err}. The lesson will continue.`);
+  }
 
   const gateOptions = {
     snrThresholdDb: gateSnrThresholdDb,
@@ -606,12 +628,16 @@ showState('live');
 
   try {
     if (wantsFixture) {
-      status('Playing recorded segments. This is not live capture.');
+      status(beginError
+        ? `Playing recorded segments. This is not live capture. Could not open this lesson in storage. ${beginError?.message ?? beginError}.`
+        : 'Playing recorded segments. This is not live capture.');
       renderHud({ capturing: false });
       for await (const raw of streamSegments(engine)) acceptSegment(raw);
       status('Recorded lesson finished. End class to produce the sheet.');
     } else {
-      status('Requesting microphone…');
+      status(beginError
+        ? `Requesting microphone. Could not open this lesson in storage. ${beginError?.message ?? beginError}.`
+        : 'Requesting microphone…');
       mic = new captureModule.MicCapture({
         snrThresholdDb: gateSnrThresholdDb,
         minSpeechSec: DEFAULTS.minSpeechSec,
@@ -623,9 +649,7 @@ showState('live');
         hotwords,
         snrThresholdDb: gateSnrThresholdDb,
       });
-// Naming the gate threshold on screen: the student should be able to see
-      // what the system is measuring, not guess at it.
-      status(`Listening. Keep this screen on. ${gateSnrThresholdDb} dB.${hotwords.length ? ` Hotwords: ${hotwords.length}.` : ''}`);
+      status(`Listening. Keep this screen on. ${gateSnrThresholdDb} dB.${hotwords.length ? ` Hotwords: ${hotwords.length}.` : ''}${beginError ? ` Could not open this lesson in storage. ${beginError?.message ?? beginError}.` : ''}`);
       renderHud({ capturing: true, ...mic.signalQuality() });
 
       // While capture runs, keep the HUD honest about the room. Polled at
@@ -642,7 +666,7 @@ showState('live');
       // The bridge is a callback, not an iterable: register the handler and
       // then wait for End class to release us. Note that beginLesson() is NOT
       // re-entrant — the Start buttons are disabled synchronously above.
-      bridge.onSegment(handleSegment);
+      bridge.onSegment(acceptSegment);
 
       await new Promise((resolve) => { stopWhenEnded = resolve; });
       clearInterval(qualityTimer);
@@ -702,10 +726,12 @@ $('end-btn').addEventListener('click', async () => {
     saveError = err;
   }
 
-// The post-class pass above already filled session.vocab,
-  // session.summaryLines, coverage and saveError, so this handler only
-  // renders. `unverified()` is the module-scope helper: a local const of the
-  // same name would shadow it and quietly break the persistent honesty chip.
+  if (!saveError) {
+    try { await refreshSavedLessons(); } catch { /* list refresh is optional */ }
+  }
+
+  // `unverified()` is the module-scope helper. A local const of the same name
+  // would shadow it and quietly break the persistent honesty chip.
   const isUnverified = unverified();
   sheet.render({
     session: { ...session, summaryLines: session.summaryLines },
@@ -722,7 +748,7 @@ $('end-btn').addEventListener('click', async () => {
   showState('sheet');
   $('sheet-status').textContent = saveError
     ? `Save failed: ${saveError?.message ?? saveError}`
-    : `${Math.round(coverage.coverageRatio * 100)}% passed the audio check · ${session.flags.length} flagged`;
+    : `${Math.round(coverage.coverageRatio * 100)}% of the time is shown as words · ${session.flags.length} flagged`;
   renderHud({ capturing: false });
   window.scrollTo(0, 0);
 });
@@ -763,19 +789,19 @@ function showSheet(saved, coverage, summaryLines, statusText) {
 
 $('open-saved-btn').addEventListener('click', async () => {
   if (capturing) return;
-  if (!store?.listSessions || !store?.getSession) {
+  if (!store?.getSession) {
     status('Local storage is not available.');
     return;
   }
+  const id = $('saved-lessons').value;
+  if (!id) {
+    status('No saved lesson is selected.');
+    return;
+  }
   try {
-    const listed = await store.listSessions();
-    if (!listed.length) {
-      status('No saved lesson.');
-      return;
-    }
-    const saved = await store.getSession(listed[0].id);
+    const saved = await store.getSession(id);
     if (!saved) {
-      status('No saved lesson.');
+      status('That saved lesson is missing.');
       return;
     }
     const { vocab, summaryLines, coverage } = finishSaved(saved);
@@ -783,7 +809,7 @@ $('open-saved-btn').addEventListener('click', async () => {
       { ...saved, vocab, summaryLines },
       coverage,
       summaryLines,
-      `${Math.round(coverage.coverageRatio * 100)}% passed the audio check · ${(saved.flags ?? []).length} flagged`,
+      `${Math.round(coverage.coverageRatio * 100)}% of the time is shown as words · ${(saved.flags ?? []).length} flagged`,
     );
   } catch (err) {
     status(`Could not open the saved lesson: ${err?.message ?? err}`);
@@ -798,6 +824,7 @@ $('delete-saved-btn').addEventListener('click', async () => {
   }
   try {
     await store.deleteAllSessions();
+    await refreshSavedLessons();
     status('Saved lessons are gone.');
   } catch (err) {
     status(`Could not delete saved lessons: ${err?.message ?? err}`);
@@ -832,7 +859,7 @@ const fmtWhen = (ms) => {
  * Normalise a segment source into an async iterable.
  *
  * Two shapes exist and they are genuinely different:
- *   - { segments() }      the fixture engine yields a known list, then ends
+ *   - { segments() }      the fixture engine returns a list, then ends
  *   - { onSegment(cb) }   P2's capture bridge pushes until stopped
  *
  * The previous version was an `async function*` whose callback branch
@@ -845,7 +872,19 @@ const fmtWhen = (ms) => {
  * @returns {AsyncIterable<any>}
  */
 function streamSegments(source) {
-  if (typeof source?.segments === 'function') return source.segments();
+  if (typeof source?.segments === 'function') {
+    const produced = source.segments();
+    if (produced && (typeof produced[Symbol.asyncIterator] === 'function'
+      || typeof produced[Symbol.iterator] === 'function')) {
+      return produced;
+    }
+    // Fixture segments() is an async function. It returns a promise of a list,
+    // not an async generator. Wait for that list, then yield each line.
+    return (async function* () {
+      const rows = await produced;
+      for (const seg of rows) yield seg;
+    })();
+  }
 
   if (typeof source?.onSegment === 'function') {
     return (async function* () {

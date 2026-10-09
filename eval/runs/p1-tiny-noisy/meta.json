@@ -1,0 +1,428 @@
+{
+  "model": "Xenova/whisper-tiny",
+  "package": "4.3.1",
+  "device": "webgpu",
+  "loadMs": 737,
+  "deviceAttempts": [],
+  "progressFiles": [
+    "config.json",
+    "preprocessor_config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "onnx/encoder_model.onnx",
+    "onnx/decoder_model_merged.onnx",
+    "generation_config.json"
+  ],
+  "onnxBefore": [
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/encoder_model.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/encoder_model.onnx"
+  ],
+  "onnxAfter": [
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/encoder_model.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/encoder_model.onnx"
+  ],
+  "cacheDir": "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/",
+  "hotwordPrompt": "photosynthesis, chlorophyll, chloroplast, glucose, carbon dioxide, oxygen, Jan Ingenhousz",
+  "determinism": {
+    "match": true,
+    "first": "",
+    "second": "",
+    "firstMs": 9697,
+    "secondMs": 9811
+  },
+  "firstSpanAfterLoadMs": 9697,
+  "sameSpanAgainMs": 9811,
+  "laterDecodeMs": [
+    1232,
+    676,
+    604,
+    738,
+    734,
+    652,
+    655,
+    802,
+    502,
+    582,
+    861,
+    583
+  ],
+  "note": "Spans are the human label times, not the live VAD cuts. loadMs is pipeline() including the weight download when the cache was empty. firstSpanAfterLoadMs is the first generate after that load. laterDecodeMs are the remaining spans of the first condition, model already loaded.",
+  "decoded": {
+    "tl": {
+      "spans": [
+        {
+          "index": 0,
+          "label": "MIX",
+          "text": "",
+          "latencyMs": 9712
+        },
+        {
+          "index": 1,
+          "label": "MIX",
+          "text": "Ampoto sin this is aumprecesal kusang gumang ko wanisari limpag ka inamang halaman.",
+          "latencyMs": 1232
+        },
+        {
+          "index": 2,
+          "label": "EN",
+          "text": "Plans ni yukri tings, sunlight, water and carbon dioxide.",
+          "latencyMs": 676
+        },
+        {
+          "index": 3,
+          "label": "MIX",
+          "text": "I'm not sure if you'll be able to get rid of this.",
+          "latencyMs": 604
+        },
+        {
+          "index": 4,
+          "label": "MIX",
+          "text": "noguhan ng plodrofe lang enerjiya mong nasa araw.",
+          "latencyMs": 738
+        },
+        {
+          "index": 5,
+          "label": "MIX",
+          "text": "...ob ng klaro-plas na nerea ang photosynthesis.",
+          "latencyMs": 734
+        },
+        {
+          "index": 6,
+          "label": "MIX",
+          "text": "ang adput nito elu ko sa at auxitian.",
+          "latencyMs": 652
+        },
+        {
+          "index": 7,
+          "label": "TL",
+          "text": "Kiyamahalala ka mo ng halamas atin buwai.",
+          "latencyMs": 655
+        },
+        {
+          "index": 8,
+          "label": "TL",
+          "text": "ang Indian Hush, ang nakatoklas na bailangan ng lang wana sa process mito.",
+          "latencyMs": 802
+        },
+        {
+          "index": 9,
+          "label": "EN",
+          "text": "It's like that, don't you?",
+          "latencyMs": 502
+        },
+        {
+          "index": 10,
+          "label": "MIX",
+          "text": "Polang aga wala ako pohito sin dito.",
+          "latencyMs": 582
+        },
+        {
+          "index": 11,
+          "label": "MIX",
+          "text": "ko hay any questions. Si na ng maapag sa ba ako sa alangayari ang photosinkasas.",
+          "latencyMs": 861
+        },
+        {
+          "index": 12,
+          "label": "MIX",
+          "text": "ang gudmagia sa toroflas.",
+          "latencyMs": 583
+        }
+      ],
+      "generate": "tl",
+      "hotwords": false
+    },
+    "tl-hotwords": {
+      "spans": [
+        {
+          "index": 0,
+          "label": "MIX",
+          "text": "I'm not going to be doing this morning, mayong, or gakarala na din ang hukusin disease.",
+          "latencyMs": 952
+        },
+        {
+          "index": 1,
+          "label": "MIX",
+          "text": "ang potosynthesis ay unprecestal, kusang gumang ko wanisarilin pagga illamang halaman.",
+          "latencyMs": 1030
+        },
+        {
+          "index": 2,
+          "label": "EN",
+          "text": "Plans New 3 Things, Sunlight, Water and Carbon dioxide",
+          "latencyMs": 660
+        },
+        {
+          "index": 3,
+          "label": "MIX",
+          "text": "ang kibigay ng kuleybedo de sa mga da.",
+          "latencyMs": 725
+        },
+        {
+          "index": 4,
+          "label": "MIX",
+          "text": "nog ohan ng chlorophyll ang energiya mong nasa araw.",
+          "latencyMs": 903
+        },
+        {
+          "index": 5,
+          "label": "MIX",
+          "text": "ognantlila ko plasmania, reanphoto synthesis.",
+          "latencyMs": 861
+        },
+        {
+          "index": 6,
+          "label": "MIX",
+          "text": "ang adput nito eluho sa toksityan.",
+          "latencyMs": 701
+        },
+        {
+          "index": 7,
+          "label": "TL",
+          "text": "kiyamahalagal mo lang lang lang lang mas atong buwai",
+          "latencyMs": 753
+        },
+        {
+          "index": 8,
+          "label": "TL",
+          "text": "ang magatoklas nagalangan ng lang wawan al sa process mito.",
+          "latencyMs": 1113
+        },
+        {
+          "index": 9,
+          "label": "EN",
+          "text": "It's like that, don't you, or know it's good man.",
+          "latencyMs": 788
+        },
+        {
+          "index": 10,
+          "label": "MIX",
+          "text": "wolang aga wolang huto sin dito.",
+          "latencyMs": 743
+        },
+        {
+          "index": 11,
+          "label": "MIX",
+          "text": "ko hay any questions, si nong mapo ang sabing ko sa alangayari ang photosynthesis.",
+          "latencyMs": 876
+        },
+        {
+          "index": 12,
+          "label": "MIX",
+          "text": "ang anggodmaia sa chloroplast.",
+          "latencyMs": 604
+        }
+      ],
+      "generate": "tl",
+      "hotwords": true
+    }
+  },
+  "scores": [
+    {
+      "id": "tl",
+      "whole": {
+        "label": "tl",
+        "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/gold.txt",
+        "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl.txt",
+        "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+        "wer": {
+          "referenceUnits": 113,
+          "hypothesisUnits": 113,
+          "substitutions": 82,
+          "deletions": 11,
+          "insertions": 11,
+          "errors": 104,
+          "rate": 0.9203539823008849
+        },
+        "cer": {
+          "referenceUnits": 613,
+          "hypothesisUnits": 485,
+          "substitutions": 121,
+          "deletions": 144,
+          "insertions": 16,
+          "errors": 281,
+          "rate": 0.45840130505709625
+        }
+      },
+      "parts": {
+        "TL": {
+          "label": "tl-TL",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl.TL.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl.TL.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 20,
+            "hypothesisUnits": 20,
+            "substitutions": 15,
+            "deletions": 1,
+            "insertions": 1,
+            "errors": 17,
+            "rate": 0.85
+          },
+          "cer": {
+            "referenceUnits": 99,
+            "hypothesisUnits": 94,
+            "substitutions": 15,
+            "deletions": 10,
+            "insertions": 5,
+            "errors": 30,
+            "rate": 0.30303030303030304
+          }
+        },
+        "EN": {
+          "label": "tl-EN",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl.EN.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl.EN.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 15,
+            "hypothesisUnits": 16,
+            "substitutions": 10,
+            "deletions": 0,
+            "insertions": 1,
+            "errors": 11,
+            "rate": 0.7333333333333333
+          },
+          "cer": {
+            "referenceUnits": 77,
+            "hypothesisUnits": 64,
+            "substitutions": 9,
+            "deletions": 15,
+            "insertions": 2,
+            "errors": 26,
+            "rate": 0.33766233766233766
+          }
+        },
+        "MIX": {
+          "label": "tl-MIX",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl.MIX.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl.MIX.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 78,
+            "hypothesisUnits": 77,
+            "substitutions": 61,
+            "deletions": 7,
+            "insertions": 6,
+            "errors": 74,
+            "rate": 0.9487179487179487
+          },
+          "cer": {
+            "referenceUnits": 437,
+            "hypothesisUnits": 327,
+            "substitutions": 102,
+            "deletions": 117,
+            "insertions": 7,
+            "errors": 226,
+            "rate": 0.517162471395881
+          }
+        }
+      }
+    },
+    {
+      "id": "tl-hotwords",
+      "whole": {
+        "label": "tl-hotwords",
+        "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/gold.txt",
+        "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl-hotwords.txt",
+        "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+        "wer": {
+          "referenceUnits": 113,
+          "hypothesisUnits": 121,
+          "substitutions": 85,
+          "deletions": 3,
+          "insertions": 11,
+          "errors": 99,
+          "rate": 0.8761061946902655
+        },
+        "cer": {
+          "referenceUnits": 613,
+          "hypothesisUnits": 572,
+          "substitutions": 130,
+          "deletions": 76,
+          "insertions": 35,
+          "errors": 241,
+          "rate": 0.3931484502446982
+        }
+      },
+      "parts": {
+        "TL": {
+          "label": "tl-hotwords-TL",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl-hotwords.TL.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl-hotwords.TL.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 20,
+            "hypothesisUnits": 19,
+            "substitutions": 18,
+            "deletions": 1,
+            "insertions": 0,
+            "errors": 19,
+            "rate": 0.95
+          },
+          "cer": {
+            "referenceUnits": 99,
+            "hypothesisUnits": 93,
+            "substitutions": 27,
+            "deletions": 12,
+            "insertions": 6,
+            "errors": 45,
+            "rate": 0.45454545454545453
+          }
+        },
+        "EN": {
+          "label": "tl-hotwords-EN",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl-hotwords.EN.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl-hotwords.EN.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 15,
+            "hypothesisUnits": 22,
+            "substitutions": 8,
+            "deletions": 0,
+            "insertions": 7,
+            "errors": 15,
+            "rate": 1
+          },
+          "cer": {
+            "referenceUnits": 77,
+            "hypothesisUnits": 78,
+            "substitutions": 9,
+            "deletions": 8,
+            "insertions": 9,
+            "errors": 26,
+            "rate": 0.33766233766233766
+          }
+        },
+        "MIX": {
+          "label": "tl-hotwords-MIX",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl-hotwords.MIX.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tiny-noisy/tl-hotwords.MIX.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 78,
+            "hypothesisUnits": 80,
+            "substitutions": 58,
+            "deletions": 3,
+            "insertions": 5,
+            "errors": 66,
+            "rate": 0.8461538461538461
+          },
+          "cer": {
+            "referenceUnits": 437,
+            "hypothesisUnits": 401,
+            "substitutions": 95,
+            "deletions": 57,
+            "insertions": 21,
+            "errors": 173,
+            "rate": 0.39588100686498856
+          }
+        }
+      }
+    }
+  ]
+}

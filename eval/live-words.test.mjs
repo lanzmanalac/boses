@@ -31,12 +31,14 @@ const CHECKS = { ...P2_GATE, supportsWordConfidence: false };
  * @param {{ text: string, chunks?: object[], snrDb?: number }} [spec]
  */
 async function liveSegmentFromP1(spec = {}) {
-  const chunks = spec.chunks ?? spec.text
-    .split(' ')
-    .map((word, index) => ({
-      text: word,
-      timestamp: [index * 0.3, index * 0.3 + 0.28],
-    }));
+  const parts = String(spec.text ?? '').split(' ').filter(Boolean);
+  // The stub clip is one second. Word times have to sit inside it. A late end
+  // is left out rather than pulled back onto the clip.
+  const slot = parts.length ? 0.9 / parts.length : 0.3;
+  const chunks = spec.chunks ?? parts.map((word, index) => ({
+    text: word,
+    timestamp: [index * slot, index * slot + Math.min(0.28, slot * 0.85)],
+  }));
   class Worker {
     constructor() {}
     postMessage(message) {

@@ -13,6 +13,11 @@ const MAX_CRASHES = 1;
 
 /**
  * @typedef {{ text: string, timestamp: [number, number | null] }} PipelineChunk
+ * @typedef {import('../contracts.ts').Word} Word
+ * @typedef {
+ *   | { kind: 'placed', words: Word[], gaps: Gap[] }
+ *   | { kind: 'unusable', gap: Gap }
+ * } PlaceResult
  * @typedef {
  *   | { kind: 'decoded', text: string, chunks: readonly PipelineChunk[] }
  *   | { kind: 'timeout' }
@@ -365,35 +370,73 @@ function decodeFromWorker(text, chunks, prompt) {
   return { kind: 'decoded', text: trimmed, chunks };
 }
 
-const END_SLACK_SEC = 0.25; // whisper word ends can overshoot the clip by a few ms
+/**
+ * @param {number} from
+ * @param {number} to
+ * @param {readonly { start: number, end: number }[]} occupied
+ * @returns {{ start: number, end: number }[]}
+ */
+function leftoverPieces(from, to, occupied) {
+  const covering = occupied
+    .filter((range) => range.start < to && range.end > from)
+    .sort((a, b) => a.start - b.start);
+  /** @type {{ start: number, end: number }[]} */
+  const pieces = [];
+  let cursor = from;
+  for (const range of covering) {
+    const clipStart = Math.max(range.start, from);
+    const clipEnd = Math.min(range.end, to);
+    if (clipStart > cursor) pieces.push({ start: cursor, end: clipStart });
+    cursor = Math.max(cursor, clipEnd);
+  }
+  if (to > cursor) pieces.push({ start: cursor, end: to });
+  return pieces.filter((piece) => piece.end > piece.start);
+}
 
 /**
- * Clip-relative chunks to session-absolute words. All or nothing.
- * @param {readonly PipelineChunk[]} chunks
  * @param {number} start
  * @param {number} end
- * @returns {{ ok: true, words: import('../contracts.ts').Word[] } | { ok: false }}
+ * @param {readonly PipelineChunk[]} chunks
+ * @returns {PlaceResult}
  */
-function timedWords(chunks, start, end) {
-  /** @type {import('../contracts.ts').Word[]} */
+function placeWords(start, end, chunks) {
+  /** @type {Word[]} */
   const words = [];
-  let prevEnd = start;
+  /** @type {{ absStart: number, absEnd: number }[]} */
+  const rejected = [];
   for (const chunk of chunks ?? []) {
     const text = String(chunk?.text ?? '').trim();
     if (!/[\p{L}\p{N}]/u.test(text)) continue;
     const t0 = chunk?.timestamp?.[0];
     const t1 = chunk?.timestamp?.[1];
-    if (!Number.isFinite(t0) || !Number.isFinite(t1)) return { ok: false };
     const absStart = start + t0;
-    let absEnd = start + t1;
-    if (absEnd > end + END_SLACK_SEC) return { ok: false };
-    if (absEnd > end) absEnd = end;
-    if (absStart < start || absStart < prevEnd || absEnd <= absStart) return { ok: false };
-    words.push({ text, start: absStart, end: absEnd, conf: null });
-    prevEnd = absEnd;
+    const absEnd = start + t1;
+    if (!Number.isFinite(t0) || !Number.isFinite(t1) || !(absEnd > absStart)) continue;
+    const fullyInside = absStart >= start && absEnd <= end;
+    const overlapsKept = words.some((word) => absStart < word.end && absEnd > word.start);
+    if (fullyInside && !overlapsKept) {
+      words.push({ text, start: absStart, end: absEnd, conf: null });
+      continue;
+    }
+    rejected.push({ absStart, absEnd });
   }
-  if (words.length === 0) return { ok: false };
-  return { ok: true, words };
+  if (words.length === 0) {
+    return {
+      kind: 'unusable',
+      gap: { start, end, reason: { kind: 'low_confidence' } },
+    };
+  }
+  /** @type {Gap[]} */
+  const gaps = [];
+  for (const chunk of rejected) {
+    const overlapStart = Math.max(chunk.absStart, start);
+    const overlapEnd = Math.min(chunk.absEnd, end);
+    if (!(overlapEnd > overlapStart)) continue;
+    for (const piece of leftoverPieces(overlapStart, overlapEnd, [...words, ...gaps])) {
+      gaps.push({ start: piece.start, end: piece.end, reason: { kind: 'low_confidence' } });
+    }
+  }
+  return { kind: 'placed', words, gaps };
 }
 
 /**
@@ -406,18 +449,22 @@ function timedWords(chunks, start, end) {
 function toSegment(e, outcome, engine, latencyMs) {
   const start = e.startSec;
   const end = e.startSec + e.pcm.length / SAMPLE_RATE;
-  /** @type {import('../contracts.ts').Word[]} */
+  /** @type {Word[]} */
   let words = [];
   /** @type {Gap[]} */
   let gaps = [];
-  if (outcome.kind === 'too_short') {
+  if (outcome.kind === 'decoded') {
+    const placed = placeWords(start, end, outcome.chunks);
+    if (placed.kind === 'placed') {
+      words = placed.words;
+      gaps = placed.gaps;
+    } else {
+      gaps = [placed.gap];
+    }
+  } else if (outcome.kind === 'too_short') {
     gaps = [{ start, end, reason: { kind: 'too_short' } }];
   } else if (outcome.kind === 'repetition') {
     gaps = [{ start, end, reason: { kind: 'repetition_suppressed' } }];
-  } else if (outcome.kind === 'decoded') {
-    const mapped = timedWords(outcome.chunks, start, end);
-    if (mapped.ok) words = mapped.words;
-    else gaps = [{ start, end, reason: { kind: 'low_confidence' } }];
   } else {
     gaps = [{ start, end, reason: { kind: 'low_confidence' } }];
   }

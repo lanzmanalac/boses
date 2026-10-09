@@ -320,7 +320,7 @@ this.userScrolledAway = false;
         if (seg.engine && seg.engine !== 'fixture') bits.push(esc(seg.engine));
         if (seg.latencyMs) bits.push(`${seg.latencyMs} ms`);
         bits.push(`SNR ${Number(seg.snrDb).toFixed(1)} dB`);
-        if (seg.words.length && seg.words.every((w) => w.conf === null)) bits.push('unverified');
+        if (seg.words.length && seg.words.every((w) => w.conf === null)) bits.push('not checked for accuracy');
         if (flagged.has(seg.start)) bits.push('flagged');
 
         return (
