@@ -105,15 +105,15 @@ function engineFailureOnly(seg) {
  * @param {AsrEngine} engine
  * @param {Float32Array} pcm
  * @param {string[]} terms
+ * @param {string} [goldPath]
  */
-export async function measureHotwordBias(engine, pcm, terms) {
-  const gold = await readGold(GOLD_PATH);
+export async function measureHotwordBias(engine, pcm, terms, goldPath = GOLD_PATH) {
+  const gold = await readGold(goldPath);
   if (gold == null) {
     return {
       goldMissing: true,
-      goldPath: GOLD_PATH,
-      message:
-        'lessons/gold/lesson-clean.transcript.txt is not there yet. Not inventing a gold transcript.',
+      goldPath,
+      message: `${goldPath} is not there yet. Not inventing a gold transcript.`,
     };
   }
   const without = await engine.transcribe(pcm, {
@@ -139,7 +139,7 @@ export async function measureHotwordBias(engine, pcm, terms) {
   }
   return {
     goldMissing: false,
-    goldPath: GOLD_PATH,
+    goldPath,
     terms: [...terms],
     werWithout: wer(hypothesisFrom(without), gold),
     werWith: wer(hypothesisFrom(withHw), gold),
