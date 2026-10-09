@@ -1,0 +1,46 @@
+sequenceDiagram
+    autonumber
+    participant S as Student
+    participant CAP as Capture+noise
+    participant WK as Worker
+    participant E as AsrEngine
+    participant G as Gap marker
+    participant UI as Caption UI
+
+    Note over S,UI: Lesson running · airplane mode · one session
+
+    S->>CAP: mic permission granted, session starts
+    CAP->>CAP: calibrate room noise floor (rolling min)
+
+    loop Every utterance
+        CAP->>CAP: VAD segments against calibrated floor<br/>merge gaps under 300ms
+        CAP->>CAP: estimate SNR + guard checks<br/>(min duration · continuous energy · loop)
+
+        alt SNR below threshold
+            CAP-->>G: RawSegment { reason: snr_below_threshold }
+            Note over CAP,UI: Decoder never invoked —<br/>cheapest way to avoid a hallucination
+            G-->>UI: render GAP — "[ ? noisy ]"
+        else SNR acceptable
+            CAP->>WK: PCM 16k mono + hotwords
+            WK->>E: transcribe(segment, opts)
+            E-->>WK: text + word-level timestamps
+            WK->>G: TranscriptSegment { words, gaps, snrDb, latencyMs }
+            G->>G: Taglish pass (TL / EN / MIX)
+            alt word confidence below threshold
+                G-->>UI: render GAP — "[ ? ]"
+                Note over G,UI: A confident wrong caption is<br/>worse than a visible gap
+            else word acceptable
+                G-->>UI: render WORD
+            end
+            G->>UI: append line (never auto-scroll past reader)
+        end
+
+        opt Student taps
+            S->>UI: "I missed this"
+            UI->>G: FlaggedSpan recorded
+        end
+
+        G-->>CAP: checkpoint segment to IndexedDB<br/>(battery may die later)
+    end
+
+    Note over CAP,UI: Main thread never blocks —<br/>flag button and HUD always respond

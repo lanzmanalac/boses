@@ -1,0 +1,22 @@
+sequenceDiagram
+    autonumber
+    participant Q as engine-select.js
+    participant FX as FixtureAdapter
+    participant WH as WhisperAdapter
+    participant U as Caption UI · Vocab<br/>Coverage · Study sheet
+
+    Note over Q,U: Why the architecture pays off
+
+    Q->>Q: read URL ?fixture=1 or probe WebGPU
+    Q->>FX: build() — fixture mode
+    FX-->>U: TranscriptSegment
+    Note over U: <b>T+1.5: three of four people are already<br/>demoing a working caption loop</b> while P1<br/>is still fighting WebGPU
+
+    Note over Q: hours later
+
+    Q->>WH: build() — model ready
+    WH->>WH: try WebGPU → probe fails? → WASM
+    WH-->>U: TranscriptSegment<br/>(identical shape)
+
+    Note over FX,WH: Upstream code has ZERO knowledge<br/>that these are different implementations
+    Note over Q: One file owns the swap.<br/>If the swap is hard, this architecture is wrong.

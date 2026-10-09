@@ -1,0 +1,45 @@
+flowchart TB
+    P1["<b>P1 · ML / model boundary</b><br/>owns web/asr.js · web/hotwords.js · web/hw-eval.js"]
+    P2["<b>P2 · Audio, capture, noise</b><br/>owns web/capture.js · web/noise.js · lessons/**"]
+    P3["<b>P3 · UI, print, integration</b><br/>owns web/captions.js · web/sheet.js · web/sw.js"]
+    P4["<b>P4 · Taglish, post-class, eval</b><br/>owns web/confidence.js · web/taglish.js<br/>web/vocab.js · web/summary.js · web/store.js · eval/**"]
+
+    PORT["<b>ports/ — interfaces only, frozen at T+0:30</b>"]
+    P1A["AsrEngine<br/><i>supportsWordConfidence</i>"]
+    P1B["SessionStore"]
+    P1C["TermRanker"]
+    P1D["NarrativeWriter"]
+
+    ADR["<b>adapters/ — interchangeable implementations</b>"]
+    A1["WhisperEngine<br/>WebGPU → WASM"]
+    A2["<b>FixtureEngine</b><br/>replays JSON"]
+    A3["IndexedDbStore"]
+    A4["TemplateNarrative"]
+    A5["LlmNarrative<br/><i>optional · cut #1</i>"]
+
+    CORE["<b>core/ — pure logic, zero outside imports</b>"]
+    C1["Taglish pass"]
+    C2["<b>Gap marker</b>"]
+    C3["Coverage calc"]
+    C4["Vocab extract"]
+    C5["Summary compose"]
+
+    P1 --> ADR
+    P2 --> ADR
+    P3 --> PORT
+    P4 --> CORE
+    PORT -.->|implemented by| ADR
+    ADR -.->|satisfies| PORT
+    CORE -->|consumes| PORT
+    CORE -.->|"FORBIDDEN"| ADR
+
+    classDef team fill:#eef4ff,stroke:#3b6fd4,stroke-width:2px,color:#0f2a5c
+    classDef port fill:#f3e8ff,stroke:#7c3aed,stroke-width:2px,color:#2e1065
+    classDef adapt fill:#eefaf3,stroke:#3f9d6b,stroke-width:2px,color:#0b3d26
+    classDef core fill:#fff7ed,stroke:#e07b39,stroke-width:2px,color:#5c2d0e
+
+    class P1,P2,P3,P4 team
+    class PORT,P1A,P1B,P1C,P1D port
+    class ADR,A1,A2,A3,A4,A5 adapt
+    class CORE,C1,C2,C3,C4,C5 core
+    style CORE stroke-width:3px,stroke-dasharray:6 4

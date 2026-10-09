@@ -1,0 +1,52 @@
+flowchart LR
+    subgraph INFRA["  INFRASTRUCTURE  "]
+        direction TB
+        MIC["Device<br/>microphone"]
+        CAP["<b>capture.js + noise.js</b><br/>AudioWorklet · VAD against<br/>calibrated noise floor<br/>SNR estimate per segment"]
+        WK["<b>asr-worker.js</b><br/>Web Worker<br/>UI stays responsive"]
+        MIC --> CAP --> WK
+    end
+
+    subgraph ADAPT["  ADAPTERS — interchangeable  "]
+        direction TB
+        FX["<b>FixtureAdapter</b><br/>replays committed JSON<br/>unblocks 3 people at T+1.5"]
+        WH["<b>WhisperAdapter</b><br/>transformers.js<br/>WebGPU → WASM fallback"]
+    end
+
+    subgraph CORE["  DOMAIN CORE — no framework · no DOM · no outside imports  "]
+        direction TB
+        TAG["Taglish pass<br/>TL / EN / MIX"]
+        GAPS["<b>Gap marker</b><br/>a confident wrong caption<br/>is worse than a visible gap"]
+        VOCAB["Vocabulary<br/>extractor"]
+        SUM["Summary composer<br/>deterministic template"]
+        COV["Coverage<br/>calculator"]
+        TAG --> GAPS
+        GAPS --> VOCAB
+        VOCAB --> SUM
+        GAPS --> COV
+    end
+
+    subgraph OUT["  OUTPUT  "]
+        direction TB
+        CAPUI["Caption renderer<br/>large type · high contrast<br/>reader-paced · no auto-scroll"]
+        FLAG["'I missed this'"]
+        SHEET["<b>Printable study sheet</b><br/>summary · vocabulary · flagged<br/>spans · coverage · transcript"]
+    end
+
+    WK -->|"AsrEngine port"| ADAPT
+    ADAPT -->|"TranscriptSegment<br/>words + gaps + snrDb"| TAG
+    GAPS --> CAPUI
+    GAPS --> FLAG
+    GAPS --> VOCAB
+    SUM --> SHEET
+    COV --> SHEET
+
+    classDef infra fill:#f2f4f7,stroke:#667085,stroke-width:2px,color:#1f2937
+    classDef adapt fill:#eefaf3,stroke:#3f9d6b,stroke-width:2px,color:#0b3d26
+    classDef core fill:#fff7ed,stroke:#e07b39,stroke-width:2px,color:#5c2d0e
+    classDef out fill:#eef4ff,stroke:#3b6fd4,stroke-width:2px,color:#0f2a5c
+
+    class MIC,CAP,WK infra
+    class FX,WH adapt
+    class TAG,GAPS,VOCAB,SUM,COV core
+    class CAPUI,FLAG,SHEET out

@@ -1,0 +1,37 @@
+flowchart LR
+    subgraph OUTSIDE["  THE INTERNET  "]
+        D["Static host<br/><i>app shell only</i>"]
+        HF["Model weights<br/><b>ONE-TIME DOWNLOAD</b>"]
+    end
+
+    subgraph DEVICE["  USER DEVICE — after first load, nothing else crosses  "]
+        direction TB
+        PWA["Boses PWA<br/>installed from cache"]
+        INF["All inference<br/><b>speech · confidence · Taglish<br/>noise gating · vocabulary · summary</b>"]
+        ST["IndexedDB<br/>sessions · audio · transcripts"]
+        DEL["<b>One-tap permanent delete</b>"]
+        PRN["Print / on-screen sheet"]
+        NOPRINT["<b>NO UPLOAD ENDPOINT EXISTS</b><br/>no server to breach · no vendor<br/>no retention policy needed<br/>because nothing is stored remotely"]
+    end
+
+    D -.->|"load once"| PWA
+    HF -.->|"download once, then never again"| PWA
+    PWA --> INF
+    INF --> ST
+    ST --> DEL
+    INF --> PRN
+    ST -.-> NOPRINT
+
+    NOTE["<b>'Our data never left the phone' is not a policy page.<br/>There is no server to send it to.</b>"]
+
+    NOPRINT --> NOTE
+
+    classDef outside fill:#f2f4f7,stroke:#667085,stroke-width:2px,color:#1f2937
+    classDef dev fill:#eefaf3,stroke:#3f9d6b,stroke-width:2px,color:#0b3d26
+    classDef strong fill:#fee2e2,stroke:#dc2626,stroke-width:3px,color:#7f1d1d
+    classDef note fill:#eef4ff,stroke:#3b6fd4,stroke-width:3px,color:#0f2a5c
+
+    class D,HF outside
+    class PWA,INF,ST,PRN dev
+    class DEL,NOPRINT strong
+    class NOTE note

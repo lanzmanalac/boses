@@ -1,0 +1,59 @@
+erDiagram
+    LESSON_SESSION ||--o{ TRANSCRIPT_SEGMENT : "append-only during session"
+    LESSON_SESSION ||--o{ FLAGGED_SPAN : "student marks"
+    LESSON_SESSION ||--o{ VOCAB_ITEM : "derived at session end"
+    LESSON_SESSION }o--|| COVERAGE_STATS : "computed on finalize"
+    LESSON_SESSION }o--o| HOTWORD_SET : "seeded per lesson"
+    TRANSCRIPT_SEGMENT ||--o{ WORD : "high-confidence only"
+    TRANSCRIPT_SEGMENT ||--o{ GAP : "explicit uncertainty"
+
+    LESSON_SESSION {
+        string id PK "UK"
+        int startedAt "epoch ms"
+        string title
+        string status "live | finalized"
+    }
+    TRANSCRIPT_SEGMENT {
+        string id PK "UK"
+        int start "sec"
+        int end "sec"
+        float snrDb "enables SNR gating"
+        string engine "webgpu | wasm | fixture"
+        int latencyMs
+    }
+    WORD {
+        string text
+        int start
+        int end
+        float conf "NULLABLE — see ADR-0002"
+        string source "asr | fixture"
+    }
+    GAP {
+        int start
+        int end
+        string reason "low_confidence | snr_below_threshold | too_short | repetition_suppressed"
+        string alternatives "always shown as uncertain"
+    }
+    FLAGGED_SPAN {
+        int start
+        int end
+        string text
+        string reason "user_flagged | gap reason"
+    }
+    VOCAB_ITEM {
+        string term
+        int count
+        string tl "optional"
+        string en "optional"
+    }
+    COVERAGE_STATS {
+        float totalSec
+        float confidentSec
+        float uncertainSec
+        float coverageRatio
+    }
+    HOTWORD_SET {
+        string id PK
+        string label
+        string terms
+    }

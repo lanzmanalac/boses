@@ -1,0 +1,42 @@
+gantt
+    title Boses — 19.5-hour build (2:30 PM Oct 9 → 10:00 AM Oct 10, code freeze)
+    dateFormat HH:mm
+    axisFormat %H:%M
+
+    section Phase 0 — Freeze
+    Contracts frozen · fixtures committed · confidence probe    :crit, p0, 14:30, 30m
+
+    section P1 — ML / model
+    WebGPU spike (does transformers.js decode?)                 :p1a, 14:30, 2h
+    Verify WASM fallback  · DECISION DEADLINE T+4               :crit, milestone, m1, 18:30, 0m
+    Streaming utterance decode                                :p1b, after p1a, 2h
+    Hotword biasing + before/after WER                         :p1c, 22:00, 3h
+    Latency · WER-vs-SNR curve · hallucination rate            :p1d, 02:30, 3h
+    Backup demo video in AIRPLANE MODE                         :crit, p1e, 05:30, 1h
+
+    section P2 — Audio / noise
+    Record 2 takes (clean + noisy)                             :crit, p2a, 14:30, 2h
+    noise.js — SNR gate · min-duration · loop suppression      :p2b, 16:30, 3h
+    Hand-transcribe both lessons (ground truth)                :crit, p2c, 18:30, 3h
+    Noise-floor calibration · SNR sweep transcriptions         :p2d, 22:00, 4h
+
+    section P3 — UI / print / integration
+    PWA shell · service worker · airplane-mode HUD             :p3a, 14:30, 2h
+    Caption renderer vs fixture                                 :p3b, 16:30, 3h
+    Type sizing · contrast · pacing · signal HUD                :p3c, 18:30, 3h
+    Printable study sheet (terminal artifact)                   :crit, p3d, 02:30, 4h
+    DEVICE MATRIX — one phone + one laptop                     :crit, p3e, 06:30, 1h
+
+    section P4 — Post-class / eval
+    Gap marker + coverage vs fixture                            :crit, p4a, 14:30, 3h
+    Taglish TL/EN/MIX pass                                     :p4b, 17:30, 3h
+    Vocabulary + summary template + IndexedDB store             :p4c, 20:30, 4h
+    Offline eval suite · README · DISCLOSURES                   :p4d, 03:30, 3h
+
+    section Gates
+    Checkpoint A — integration                                 :milestone, g1, 18:00, 0m
+    Checkpoint B — CUT DECISIONS (not T+17)                     :crit, milestone, g2, 22:00, 0m
+    Confidence rung chosen — HARD STOP T+5                      :crit, milestone, g3, 19:30, 0m
+    Checkpoint C — completeness                                :milestone, g4, 02:30, 0m
+    Checkpoint D — FEATURE FREEZE                               :crit, milestone, g5, 06:30, 0m
+    CODE FREEZE · NO COMMITS                                    :crit, milestone, g6, 10:00, 0m

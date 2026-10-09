@@ -1,0 +1,70 @@
+flowchart LR
+    IN["<b>Utterance<br/>from VAD</b>"]
+
+    subgraph GUARDS["  ORDERED GUARDS — cheapest rejections first  "]
+        direction TB
+        G1{"Duration<br/>plausible?"}
+        GG1["GAP<br/>too_short"]
+        G2{"Any silence<br/>inside?<br/><i>continuous energy<br/>= noise</i>"}
+        GG2["GAP<br/>treated as noise<br/><i>main hallucination<br/>guard</i>"]
+        G3{"Repeated<br/>n-gram loop?"}
+        GG3["GAP<br/>repetition_suppressed"]
+        G4{"<b>SNR GATE</b><br/>snrDb above<br/>threshold?"}
+        GG4["GAP<br/>snr_below_threshold<br/><b>decoder NEVER<br/>invoked</b><br/><i>highest value per<br/>line of code</i>"]
+        G1 -->|"no"| GG1
+        G1 -->|"yes"| G2
+        G2 -->|"no silence"| GG2
+        G2 -->|"yes"| G3
+        G3 -->|"yes"| GG3
+        G3 -->|"no"| G4
+        G4 -->|"NO"| GG4
+    end
+
+    DEC["<b>Invoke decoder</b><br/>most expensive step"]
+    RP{"Output<br/>repeats?"}
+    GG5["GAP<br/>repetition_suppressed"]
+
+    subgraph CONF["  CONFIDENCE — ADR-0002 ladder  "]
+        direction TB
+        C1{"Per-word<br/>confidence<br/>available?"}
+        SEG["<b>Segment proxy</b> — rung 3<br/>SNR + duration + VAD quality<br/><i>honest; cannot lie the way<br/>unexamined model conf can</i>"]
+        WD{"Word below<br/>threshold?"}
+        GGW["<b>GAP</b> '[ ? ]'<br/><b>a confident wrong caption<br/>is worse than a visible gap</b>"]
+        WORD["<b>WORD</b><br/>rendered with confidence"]
+        C1 -->|"no"| SEG
+        C1 -->|"yes"| WD
+        WD -->|"yes"| GGW
+        WD -->|"no"| WORD
+    end
+
+    AGG["<b>Escalate aggressiveness as conditions worsen.</b><br/>The system degrades LOUDLY, never silently.<br/><br/>Downstream: coverage stats + flagged & noisy spans<br/>printed on the study sheet as 'ask about these tomorrow'"]
+
+    AVOID["<b>EXPLICITLY AVOID</b><br/><br/>✗ Aggressive spectral subtraction<br/>&nbsp;&nbsp;artifacts hurt ASR more than the mild noise<br/>✗ Heavy AGC<br/>&nbsp;&nbsp;boosts noise in the gaps between words<br/><br/><b>Denoise gently, gate hard.</b><br/>VAD and gating beat any noise suppressor."]
+
+    IN --> G1
+    G4 -->|"yes"| DEC
+    DEC --> RP
+    RP -->|"yes"| GG5
+    RP -->|"no"| C1
+    GG1 --> AGG
+    GG2 --> AGG
+    GG3 --> AGG
+    GG4 --> AGG
+    GG5 --> AGG
+    SEG --> AGG
+    WORD --> AGG
+    GGW --> AGG
+
+    classDef inp fill:#f2f4f7,stroke:#667085,stroke-width:2px,color:#1f2937
+    classDef gate fill:#fff7ed,stroke:#e07b39,stroke-width:2px,color:#5c2d0e
+    classDef gapf fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d
+    classDef good fill:#eefaf3,stroke:#3f9d6b,stroke-width:2px,color:#0b3d26
+    classDef agg fill:#eef4ff,stroke:#3b6fd4,stroke-width:3px,color:#0f2a5c
+    classDef avoid fill:#fce7f3,stroke:#be185d,stroke-width:2px,color:#500724
+
+    class IN inp
+    class G1,G2,G3,G4,C1,WD,RP gate
+    class DEC,WORD good
+    class GG1,GG2,GG3,GG4,GG5,GGW gapf
+    class AGG agg
+    class AVOID avoid

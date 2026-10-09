@@ -1,0 +1,60 @@
+flowchart TB
+    START["<b>Every failure must degrade into<br/>a VISIBLE GAP — never a silent wrong caption</b>"]
+    START --> F
+
+    F{"Failure"}
+
+    F --> F1["<b>1 · No confidence available</b><br/>ADR-0002"]
+    F1 --> F1R["Take ladder rung 3 (segment proxy)<br/>or SNR-gated certainty.<br/><b>Design-level — decide by T+3, stop at T+5</b>"]
+
+    F --> F2["<b>2 · WebGPU absent</b>"]
+    F2 --> F2R["WASM path, pre-warmed cache<br/><i>Latency only — covered</i>"]
+
+    F --> F3["<b>3 · Model download incomplete</b>"]
+    F3 --> F3R["Fixture mode + explicit warning<br/><i>Demo only, if pre-downloaded</i>"]
+
+    F --> F4["<b>4 · Hallucination loop on noise</b>"]
+    F4 --> F4R["Repetition detector → emit<br/>repetition_suppressed gap<br/><i>One segment — contained by design</i>"]
+
+    F --> F5["<b>5 · Phone thermal throttling</b>"]
+    F5 --> F5R["Shrink model, warn, suggest pause<br/><i>Latency. Coverage drops honestly</i>"]
+
+    F --> F6["<b>6 · Battery dies mid-class</b>"]
+    F6 --> F6R["Segments checkpointed on write<br/>→ partial lesson recoverable<br/><i>Only because of incremental writes</i>"]
+
+    F --> F7["<b>7 · Backgrounded tab throttles timers</b>"]
+    F7 --> F7R["Warn: keep screen open<br/><i>Detection is cheap</i>"]
+
+    F --> F8["<b>8 · IndexedDB quota exceeded</b>"]
+    F8 --> F8R["Drop audio blobs, keep text, tell user<br/><i>Text survives</i>"]
+
+    F --> F9["<b>9 · Mic permission denied</b>"]
+    F9 --> F9R["Clear explanation, no silent dead UI<br/><i>Total, but visibly</i>"]
+
+    F --> F10["<b>10 · Low-end device OOM</b>"]
+    F10 --> F10R["Restart worker with smaller model<br/><i>Session text survives</i>"]
+
+    F --> F11["<b>11 · Decoder hangs past timeout</b>"]
+    F11 --> F11R["Per-segment timeout = 2× measured p95<br/>→ emit gap rather than block forever<br/><b>A stalled decoder is worse than an admitted gap</b>"]
+
+    F1R --> T["<b>All paths converge on:<br/>an explicit, attributable Gap</b>"]
+    F2R --> T
+    F3R --> T
+    F4R --> T
+    F5R --> T
+    F6R --> T
+    F7R --> T
+    F8R --> T
+    F9R --> T
+    F10R --> T
+    F11R --> T
+
+    classDef hdr fill:#fee2e2,stroke:#dc2626,stroke-width:3px,color:#7f1d1d
+    classDef fail fill:#fff7ed,stroke:#e07b39,stroke-width:2px,color:#5c2d0e
+    classDef resp fill:#eefaf3,stroke:#3f9d6b,stroke-width:2px,color:#0b3d26
+    classDef conv fill:#eef4ff,stroke:#3b6fd4,stroke-width:3px,color:#0f2a5c
+
+    class START hdr
+    class F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11 fail
+    class F1R,F2R,F3R,F4R,F5R,F6R,F7R,F8R,F9R,F10R,F11R resp
+    class T conv

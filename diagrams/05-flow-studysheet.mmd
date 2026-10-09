@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    participant S as Student
+    participant A as App
+    participant V as Vocab extractor
+    participant T as Summary template
+    participant L as LLM (optional)
+    participant DB as IndexedDB
+    participant P as Print / screen
+
+    Note over S,P: End of class — the terminal artifact
+
+    S->>A: "End class"
+    A->>V: segments + flagged spans + gaps
+    V-->>A: key terms, TL/EN pairs,<br/>flagged + noisy spans
+
+    A->>T: structured facts only
+    T-->>A: deterministic summary<br/><b>always works, even if everything else fails</b>
+
+    opt LLM enabled (cut #1 — likely absent)
+        A->>L: prose request around injected facts
+        L-->>A: draft — never a number
+        A->>A: verify every figure came from facts<br/>reject any invented value
+    end
+
+    A->>DB: persist session + coverage stats
+    A->>DB: confirm incremental writes landed
+    A-->>P: print layout — adjustable type size + contrast
+    Note over P: If printing unavailable (phone),<br/>the sheet stays fully readable on-screen
+
+    Note over S,P: Student walks away with paper.<br/>That is the point of the whole product.
