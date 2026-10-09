@@ -108,9 +108,9 @@ Hallucination loops on the clean take: tiny 2, base 0 (1 with hotwords), fsc 0. 
 | Item | Value |
 | --- | --- |
 | Recordings | `lesson-clean`, `lesson-noisy`, `noise-only` — recorded Oct 9, 2026 by P2 for this hackathon |
-| Speaker | **TO CONFIRM** (team member P2; no students) |
-| Location / device | **TO CONFIRM** |
-| Background in noisy take | electric fan + classroom-ambience audio played from another device — **confirm source/licence** |
+| Speaker | Cristina(team member P2; no students) |
+| Location / device | Phone |
+| Background in noisy take | electric fan + classroom-ambience audio played from another device — https://www.youtube.com/watch?v=FzL65bmD1Nw|
 | Labels and transcripts | hand-checked by P2 in Audacity |
 | Sweep files | generated from the recordings by `lessons/sweep/make_sweep.py` |
 | Tools | Audacity, ffmpeg; Claude Code (AI-assisted code, analysis and docs) |
