@@ -158,9 +158,21 @@ test('empty PCM is too_short', async () => {
 
 test('measureHotwordBias reports missing gold instead of inventing text', async () => {
   const engine = new WhisperEngine();
-  const result = await measureHotwordBias(engine, new Float32Array(16), ['mitokondria']);
+  const missing = 'lessons/gold/does-not-exist.txt';
+  const result = await measureHotwordBias(engine, new Float32Array(16), ['mitokondria'], missing);
   assert.equal(result.goldMissing, true);
-  assert.equal(result.goldPath, 'lessons/gold/lesson-clean.transcript.txt');
+  assert.equal(result.goldPath, missing);
   assert.equal(typeof result.message, 'string');
+  assert.equal(harness.decodeCount, 0);
+  await engine.dispose();
+});
+
+test('measureHotwordBias scores the real gold file', async () => {
+  const engine = new WhisperEngine();
+  const result = await measureHotwordBias(engine, new Float32Array(16), ['mitokondria']);
+  assert.equal(result.goldMissing, false);
+  assert.equal(result.goldPath, 'lessons/gold/lesson-clean.transcript.txt');
+  assert.equal(typeof result.werWithout, 'number');
+  assert.equal(typeof result.werWith, 'number');
   await engine.dispose();
 });
