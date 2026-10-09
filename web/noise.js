@@ -45,6 +45,8 @@ export const DEFAULTS = Object.freeze({
   floorWindowSec: 5,        // noise floor = low percentile of the last N seconds
   floorPercentile: 0.15,
   calibrationSec: 1.0,      // first second sets the floor; ask the room for quiet
+  minFloorDb: -75,          // a real room is louder than this; lower means the mic was still waking
+                            //    up (seen live: -87 dB), which inflates SNR and hides pauses
   steadyStdDb: 3,           // frame-level std below this = unmodulated noise
   highPassHz: 100,
 });
@@ -167,11 +169,11 @@ export class Segmenter {
     if (this.history.length > o.floorWindowSec * framesPerSec) this.history.shift();
     if (!this.calibrated) {
       if (this.frameIndex >= o.calibrationSec * framesPerSec) this.calibrated = true;
-      this.floorDb = percentile(this.history, 0.5);
+      this.floorDb = Math.max(o.minFloorDb, percentile(this.history, 0.5));
       this._remember(f);
       return; // no utterances during calibration
     }
-    if (!this.active) this.floorDb = percentile(this.history, o.floorPercentile);
+    if (!this.active) this.floorDb = Math.max(o.minFloorDb, percentile(this.history, o.floorPercentile));
 
     if (!this.active) {
       if (db > this.floorDb + o.startMarginDb) {
