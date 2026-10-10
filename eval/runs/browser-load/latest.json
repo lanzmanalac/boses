@@ -1,0 +1,25 @@
+{
+  "clip": "lessons/sample/lesson-clean.wav",
+  "clipSeconds": 8,
+  "note": "Whisper has no Taglish id. This clip is the Taglish lesson. English is the control P4 already trusts. Tagalog is the open run.",
+  "modelId": "Xenova/whisper-tiny",
+  "device": "webgpu",
+  "loadMs": 13318,
+  "runs": [
+    {
+      "language": "en",
+      "role": "control",
+      "decodeMs": 1866,
+      "text": " Ok, class good morning. Mayon, Paga Aralana de Na Foto synthesis. The photosynthesis is a process of using.",
+      "ok": true
+    },
+    {
+      "language": "tl",
+      "role": "open",
+      "decodeMs": 1170,
+      "text": " Ok, class good morning, Mayon, pagga era la natin ang photosynthesis. Ang photosynthesis ay ang processo, huk sa adon.",
+      "ok": true
+    }
+  ],
+  "error": null
+}

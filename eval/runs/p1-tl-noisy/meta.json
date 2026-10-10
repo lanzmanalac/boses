@@ -1,0 +1,261 @@
+{
+  "model": "Xenova/whisper-tiny",
+  "package": "4.3.1",
+  "device": "cpu",
+  "loadMs": 632,
+  "deviceAttempts": [
+    {
+      "device": "webgpu",
+      "message": "/Users/cloudtest/vss/_work/1/s/onnxruntime/core/providers/webgpu/webgpu_context.cc:137 auto onnxruntime::webgpu::WebGpuContext::Initialize(const WebGpuContextConfig &)::(anonymous class)::operator()() const adapter_result.status == wgpu::RequestAdapterStatus::Success was false. Failed to get a WebGPU adapter: No supported adapters\n"
+    },
+    {
+      "device": "wasm",
+      "message": "Unsupported device: \"wasm\". Should be one of: coreml, webgpu, cpu."
+    }
+  ],
+  "progressFiles": [
+    "config.json",
+    "preprocessor_config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "onnx/encoder_model.onnx",
+    "onnx/decoder_model_merged.onnx",
+    "generation_config.json"
+  ],
+  "onnxBefore": [
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/decoder_model_merged_quantized.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/encoder_model.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/encoder_model_quantized.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/encoder_model.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/sapinsapin/whisper-small-fsc-ONNX/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/sapinsapin/whisper-small-fsc-ONNX/onnx/encoder_model.onnx"
+  ],
+  "onnxAfter": [
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/decoder_model_merged_quantized.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/encoder_model.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/encoder_model_quantized.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/encoder_model.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/sapinsapin/whisper-small-fsc-ONNX/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/sapinsapin/whisper-small-fsc-ONNX/onnx/encoder_model.onnx"
+  ],
+  "cacheDir": "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/",
+  "hotwordPrompt": "photosynthesis, chlorophyll, chloroplast, glucose, carbon dioxide, oxygen, Jan Ingenhousz",
+  "determinism": {
+    "match": true,
+    "first": "",
+    "second": "",
+    "firstMs": 4780,
+    "secondMs": 4974
+  },
+  "firstSpanAfterLoadMs": 4780,
+  "sameSpanAgainMs": 4974,
+  "laterDecodeMs": [
+    827,
+    525,
+    620,
+    539,
+    559,
+    473,
+    717,
+    577,
+    475,
+    477,
+    561,
+    454
+  ],
+  "note": "Spans are the human label times, not the live VAD cuts. loadMs is pipeline() including the weight download when the cache was empty. firstSpanAfterLoadMs is the first generate after that load. laterDecodeMs are the remaining spans of the first condition, model already loaded.",
+  "hallucination": null,
+  "decoded": {
+    "tl": {
+      "spans": [
+        {
+          "index": 0,
+          "label": "MIX",
+          "text": "",
+          "latencyMs": 4569
+        },
+        {
+          "index": 1,
+          "label": "MIX",
+          "text": "Ampoto sin this is aumprecesal kusang gumang ko wanisari limpag ka inamang halaman.",
+          "latencyMs": 827
+        },
+        {
+          "index": 2,
+          "label": "EN",
+          "text": "Plans ni yukri tings, sunlight, water and carbon dioxide.",
+          "latencyMs": 525
+        },
+        {
+          "index": 3,
+          "label": "MIX",
+          "text": "I'm not sure if you'll be able to get rid of this.",
+          "latencyMs": 620
+        },
+        {
+          "index": 4,
+          "label": "MIX",
+          "text": "noguhan ng plodrofe lang enerjiya mong nasa araw.",
+          "latencyMs": 539
+        },
+        {
+          "index": 5,
+          "label": "MIX",
+          "text": "...ob ng klaro-plas na nerea ang photosynthesis.",
+          "latencyMs": 559
+        },
+        {
+          "index": 6,
+          "label": "MIX",
+          "text": "ang adput nito elu ko sa at auxitian.",
+          "latencyMs": 473
+        },
+        {
+          "index": 7,
+          "label": "TL",
+          "text": "Kiyamahalala ka mo ng halamas atin buwai.",
+          "latencyMs": 717
+        },
+        {
+          "index": 8,
+          "label": "TL",
+          "text": "ang Indian Hush, ang nakatoklas na bailangan ng lang wana sa process mito.",
+          "latencyMs": 577
+        },
+        {
+          "index": 9,
+          "label": "EN",
+          "text": "It's like that, don't you?",
+          "latencyMs": 475
+        },
+        {
+          "index": 10,
+          "label": "MIX",
+          "text": "Polang aga wala ako pohito sin dito.",
+          "latencyMs": 477
+        },
+        {
+          "index": 11,
+          "label": "MIX",
+          "text": "ko hay any questions. Si na ng maapag sa ba ako sa alangayari ang photosinkasas.",
+          "latencyMs": 561
+        },
+        {
+          "index": 12,
+          "label": "MIX",
+          "text": "ang gudmagia sa toroflas.",
+          "latencyMs": 454
+        }
+      ],
+      "generate": "tl",
+      "hotwords": false
+    }
+  },
+  "scores": [
+    {
+      "id": "tl",
+      "whole": {
+        "label": "tl",
+        "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tl-noisy/gold.txt",
+        "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tl-noisy/tl.txt",
+        "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+        "wer": {
+          "referenceUnits": 113,
+          "hypothesisUnits": 113,
+          "substitutions": 82,
+          "deletions": 11,
+          "insertions": 11,
+          "errors": 104,
+          "rate": 0.9203539823008849
+        },
+        "cer": {
+          "referenceUnits": 613,
+          "hypothesisUnits": 485,
+          "substitutions": 121,
+          "deletions": 144,
+          "insertions": 16,
+          "errors": 281,
+          "rate": 0.45840130505709625
+        }
+      },
+      "parts": {
+        "TL": {
+          "label": "tl-TL",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tl-noisy/tl.TL.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tl-noisy/tl.TL.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 20,
+            "hypothesisUnits": 20,
+            "substitutions": 15,
+            "deletions": 1,
+            "insertions": 1,
+            "errors": 17,
+            "rate": 0.85
+          },
+          "cer": {
+            "referenceUnits": 99,
+            "hypothesisUnits": 94,
+            "substitutions": 15,
+            "deletions": 10,
+            "insertions": 5,
+            "errors": 30,
+            "rate": 0.30303030303030304
+          }
+        },
+        "EN": {
+          "label": "tl-EN",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tl-noisy/tl.EN.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tl-noisy/tl.EN.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 15,
+            "hypothesisUnits": 16,
+            "substitutions": 10,
+            "deletions": 0,
+            "insertions": 1,
+            "errors": 11,
+            "rate": 0.7333333333333333
+          },
+          "cer": {
+            "referenceUnits": 77,
+            "hypothesisUnits": 64,
+            "substitutions": 9,
+            "deletions": 15,
+            "insertions": 2,
+            "errors": 26,
+            "rate": 0.33766233766233766
+          }
+        },
+        "MIX": {
+          "label": "tl-MIX",
+          "referencePath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tl-noisy/tl.MIX.gold.txt",
+          "hypothesisPath": "/Users/lanzmanalac/Boses/boses/eval/runs/p1-tl-noisy/tl.MIX.hyp.txt",
+          "normalization": "NFKC lowercase; punctuation removed; spaces ignored for CER",
+          "wer": {
+            "referenceUnits": 78,
+            "hypothesisUnits": 77,
+            "substitutions": 61,
+            "deletions": 7,
+            "insertions": 6,
+            "errors": 74,
+            "rate": 0.9487179487179487
+          },
+          "cer": {
+            "referenceUnits": 437,
+            "hypothesisUnits": 327,
+            "substitutions": 102,
+            "deletions": 117,
+            "insertions": 7,
+            "errors": 226,
+            "rate": 0.517162471395881
+          }
+        }
+      }
+    }
+  ]
+}

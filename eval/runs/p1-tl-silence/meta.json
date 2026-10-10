@@ -1,0 +1,122 @@
+{
+  "model": "Xenova/whisper-tiny",
+  "package": "4.3.1",
+  "device": "cpu",
+  "loadMs": 635,
+  "deviceAttempts": [
+    {
+      "device": "webgpu",
+      "message": "/Users/cloudtest/vss/_work/1/s/onnxruntime/core/providers/webgpu/webgpu_context.cc:137 auto onnxruntime::webgpu::WebGpuContext::Initialize(const WebGpuContextConfig &)::(anonymous class)::operator()() const adapter_result.status == wgpu::RequestAdapterStatus::Success was false. Failed to get a WebGPU adapter: No supported adapters\n"
+    },
+    {
+      "device": "wasm",
+      "message": "Unsupported device: \"wasm\". Should be one of: coreml, webgpu, cpu."
+    }
+  ],
+  "progressFiles": [
+    "config.json",
+    "preprocessor_config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "onnx/encoder_model.onnx",
+    "onnx/decoder_model_merged.onnx",
+    "generation_config.json"
+  ],
+  "onnxBefore": [
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/decoder_model_merged_quantized.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/encoder_model.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/encoder_model_quantized.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/encoder_model.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/sapinsapin/whisper-small-fsc-ONNX/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/sapinsapin/whisper-small-fsc-ONNX/onnx/encoder_model.onnx"
+  ],
+  "onnxAfter": [
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/decoder_model_merged_quantized.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/encoder_model.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-base/onnx/encoder_model_quantized.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/Xenova/whisper-tiny/onnx/encoder_model.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/sapinsapin/whisper-small-fsc-ONNX/onnx/decoder_model_merged.onnx",
+    "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/sapinsapin/whisper-small-fsc-ONNX/onnx/encoder_model.onnx"
+  ],
+  "cacheDir": "/Users/lanzmanalac/Boses/boses/node_modules/@huggingface/transformers/.cache/",
+  "hotwordPrompt": "photosynthesis, chlorophyll, chloroplast, glucose, carbon dioxide, oxygen, Jan Ingenhousz",
+  "determinism": {
+    "match": true,
+    "first": "...",
+    "second": "...",
+    "firstMs": 586,
+    "secondMs": 412
+  },
+  "firstSpanAfterLoadMs": 586,
+  "sameSpanAgainMs": 412,
+  "laterDecodeMs": [
+    388,
+    373,
+    351,
+    353,
+    353,
+    376
+  ],
+  "note": "Each window is 5 seconds of a clip with nobody speaking. A window counts as a hallucination when Tagalog Whisper returns a word. Punctuation alone does not count. loadMs is pipeline().",
+  "hallucination": {
+    "windowSec": 5,
+    "windows": 7,
+    "withWords": 0,
+    "rate": 0
+  },
+  "decoded": {
+    "tl": {
+      "spans": [
+        {
+          "index": 0,
+          "label": "NOISE",
+          "text": "...",
+          "latencyMs": 399
+        },
+        {
+          "index": 1,
+          "label": "NOISE",
+          "text": "...",
+          "latencyMs": 388
+        },
+        {
+          "index": 2,
+          "label": "NOISE",
+          "text": "...",
+          "latencyMs": 373
+        },
+        {
+          "index": 3,
+          "label": "NOISE",
+          "text": "...",
+          "latencyMs": 351
+        },
+        {
+          "index": 4,
+          "label": "NOISE",
+          "text": "...",
+          "latencyMs": 353
+        },
+        {
+          "index": 5,
+          "label": "NOISE",
+          "text": "...",
+          "latencyMs": 353
+        },
+        {
+          "index": 6,
+          "label": "NOISE",
+          "text": "...",
+          "latencyMs": 376
+        }
+      ],
+      "generate": "tl",
+      "hotwords": false
+    }
+  },
+  "scores": []
+}

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Browser load</title>
+</head>
+<body>
+  <pre id="out">loading</pre>
+  <script type="module">
+    const CLIP_SECONDS = 8;
+    const out = document.getElementById('out');
+
+    function show(value) {
+      out.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+    }
+
+    function pcmSlice(buf, seconds) {
+      const view = new DataView(buf);
+      let offset = 12;
+      let dataOff = -1;
+      let dataLen = 0;
+      while (offset + 8 <= buf.byteLength) {
+        const id = String.fromCharCode(
+          view.getUint8(offset),
+          view.getUint8(offset + 1),
+          view.getUint8(offset + 2),
+          view.getUint8(offset + 3),
+        );
+        const size = view.getUint32(offset + 4, true);
+        if (id === 'data') {
+          dataOff = offset + 8;
+          dataLen = size;
+          break;
+        }
+        offset += 8 + size + (size % 2);
+      }
+      if (dataOff < 0) throw new Error('wav has no data chunk');
+      const samples = Math.min(dataLen / 2, 16000 * seconds);
+      const pcm = new Float32Array(samples);
+      for (let i = 0; i < samples; i++) {
+        pcm[i] = view.getInt16(dataOff + i * 2, true) / 32768;
+      }
+      return pcm;
+    }
+
+    const report = {
+      clip: 'lessons/sample/lesson-clean.wav',
+      clipSeconds: CLIP_SECONDS,
+      note: 'Whisper has no Taglish id. This clip is the Taglish lesson. English is the control P4 already trusts. Tagalog is the open run.',
+      modelId: 'Xenova/whisper-tiny',
+      device: null,
+      loadMs: null,
+      runs: [],
+      error: null,
+    };
+
+    async function finish() {
+      show(report);
+      await fetch('/__report', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(report),
+      });
+    }
+
+    try {
+      const wav = await fetch('/lessons/sample/lesson-clean.wav');
+      if (!wav.ok) throw new Error('clip fetch failed');
+      const pcm = pcmSlice(await wav.arrayBuffer(), CLIP_SECONDS);
+      const worker = new Worker('/web/asr-worker.js', { type: 'module' });
+      const started = performance.now();
+      const pending = new Map();
+
+      worker.onmessage = (ev) => {
+        const msg = ev.data;
+        if (msg.type === 'loaded') {
+          report.device = msg.device;
+          report.loadMs = Math.round(performance.now() - started);
+          const postedAt = performance.now();
+          pending.set('en', { language: 'en', role: 'control', postedAt });
+          show(report);
+          worker.postMessage({ type: 'decode', id: 'en', pcm, prompt: null, language: 'en' });
+          return;
+        }
+        if (msg.type === 'load_failed') {
+          report.error = msg.message || 'load failed';
+          finish();
+          return;
+        }
+        if (msg.type === 'decoded' || msg.type === 'decode_failed') {
+          const job = pending.get(msg.id);
+          if (!job) return;
+          pending.delete(msg.id);
+          report.runs.push({
+            language: job.language,
+            role: job.role,
+            decodeMs: Math.round(performance.now() - job.postedAt),
+            text: msg.type === 'decoded' ? msg.text : '',
+            ok: msg.type === 'decoded',
+          });
+          show(report);
+          if (msg.id === 'en') {
+            const postedAt = performance.now();
+            pending.set('tl', { language: 'tl', role: 'open', postedAt });
+            worker.postMessage({ type: 'decode', id: 'tl', pcm, prompt: null, language: 'tl' });
+            return;
+          }
+          finish();
+        }
+      };
+
+      worker.postMessage({ type: 'load' });
+      setTimeout(() => {
+        if (report.runs.length < 2 && !report.error) {
+          report.error = 'timed out before both decodes finished';
+          finish();
+        }
+      }, 360000);
+    } catch (err) {
+      report.error = err instanceof Error ? err.message : String(err);
+      finish();
+    }
+  </script>
+</body>
+</html>

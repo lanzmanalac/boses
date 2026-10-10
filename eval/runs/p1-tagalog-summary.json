@@ -1,0 +1,31 @@
+{
+  "language": "tl",
+  "model": "Xenova/whisper-tiny",
+  "device": "cpu",
+  "runs": 1,
+  "clean": {
+    "wer": 2.017699115044248,
+    "errors": 228,
+    "referenceWords": 113,
+    "tl": 0.85,
+    "en": 10.333333333333334,
+    "mix": 0.7435897435897436,
+    "file": "eval/runs/p1-tl-clean/meta.json"
+  },
+  "noisy": {
+    "wer": 0.9203539823008849,
+    "errors": 104,
+    "referenceWords": 113,
+    "tl": 0.85,
+    "en": 0.7333333333333333,
+    "mix": 0.9487179487179487,
+    "file": "eval/runs/p1-tl-noisy/meta.json"
+  },
+  "silence": {
+    "windowSec": 5,
+    "windows": 7,
+    "withWords": 0,
+    "rate": 0,
+    "file": "eval/runs/p1-tl-silence/meta.json"
+  }
+}

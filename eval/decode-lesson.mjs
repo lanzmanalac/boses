@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { env, pipeline } from '@huggingface/transformers';
 import { buildHotwordPrompt } from '../web/hotwords.js';
+import { normalizeText } from './metrics.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -30,8 +31,14 @@ const wavArg = argValue('--wav');
 const labelsArg = argValue('--labels');
 const goldArg = argValue('--gold');
 const tlPair = process.argv.includes('--tl-pair');
-if ((modelArg || tlPair || wavArg || labelsArg || goldArg) && !outArg) {
-  throw new Error('--out is required with --model, --tl-pair, --wav, --labels, or --gold so eval/runs/p1-lesson-clean stays the tiny run');
+const onlyArg = argValue('--only');
+const hallucination = process.argv.includes('--hallucination');
+if (hallucination && (tlPair || onlyArg || labelsArg || goldArg)) {
+  throw new Error('--hallucination scores a no-speech clip and does not take labels, gold, or other conditions');
+}
+if (onlyArg && onlyArg !== 'tl') throw new Error('--only accepts tl');
+if ((modelArg || tlPair || wavArg || labelsArg || goldArg || onlyArg || hallucination) && !outArg) {
+  throw new Error('--out is required with --model, --tl-pair, --wav, --labels, --gold, --only, or --hallucination so eval/runs/p1-lesson-clean stays the tiny run');
 }
 if (outArg && (outArg.startsWith('/') || outArg.includes('..'))) {
   throw new Error('--out must stay inside the repo');
@@ -50,7 +57,10 @@ const GOLD = goldArg
 const HOTWORDS = join(ROOT, 'lessons/hotwords/lesson.txt');
 const OUT = join(ROOT, outArg ?? 'eval/runs/p1-lesson-clean');
 
-const CONDITIONS = tlPair
+const TAGALOG = { id: 'tl', language: 'tl', hotwords: false };
+const CONDITIONS = hallucination || onlyArg === 'tl'
+  ? [TAGALOG]
+  : tlPair
   ? [
       { id: 'tl', language: 'tl', hotwords: false },
       { id: 'tl-hotwords', language: 'tl', hotwords: true },
@@ -118,6 +128,26 @@ function sliceSpan(pcm, span) {
   const a = Math.round(span.startSec * SAMPLE_RATE);
   const b = Math.round(span.endSec * SAMPLE_RATE);
   return pcm.slice(a, b);
+}
+
+function noiseWindows(pcm) {
+  const windowSec = 5;
+  const size = windowSec * SAMPLE_RATE;
+  const spans = [];
+  for (let index = 0; index * size < pcm.length; index++) {
+    const start = index * size;
+    const end = Math.min(pcm.length, start + size);
+    if (end - start < SAMPLE_RATE) break;
+    spans.push({
+      index,
+      startSec: start / SAMPLE_RATE,
+      endSec: end / SAMPLE_RATE,
+      label: 'NOISE',
+      gold: '',
+    });
+  }
+  if (!spans.length) throw new Error('noise clip is shorter than 1 second');
+  return spans;
 }
 
 function decoderInputIds(tokenizer, prompt) {
@@ -207,7 +237,7 @@ function scoreFile(reference, hypothesis, label) {
 }
 
 const pcm = readPcm16(WAV);
-const spans = loadSpans();
+const spans = hallucination ? noiseWindows(pcm) : loadSpans();
 const terms = readFileSync(HOTWORDS, 'utf8').split('\n').map((line) => line.trim()).filter(Boolean);
 const prompt = buildHotwordPrompt(terms);
 if (!prompt) throw new Error('hotword list is empty');
@@ -258,8 +288,8 @@ for (const condition of conditions) {
   const rows = decoded[condition.id].spans;
   const byIndex = new Map(rows.map((row) => [row.index, row.text]));
   const lines = spans.map((span) => byIndex.get(span.index) ?? '');
-  writeText(`${condition.id}.txt`, smoke ? lines.slice(0, 1) : lines);
-  if (!smoke) {
+    writeText(`${condition.id}.txt`, smoke ? lines.slice(0, 1) : lines);
+  if (!smoke && !hallucination) {
     for (const label of ['TL', 'EN', 'MIX']) {
       const picked = spans.filter((span) => span.label === label);
       writeText(`${condition.id}.${label}.hyp.txt`, picked.map((span) => byIndex.get(span.index) ?? ''));
@@ -302,7 +332,17 @@ const meta = {
   firstSpanAfterLoadMs: repeat.firstMs,
   sameSpanAgainMs: repeat.secondMs,
   laterDecodeMs: later,
-  note: 'Spans are the human label times, not the live VAD cuts. loadMs is pipeline() including the weight download when the cache was empty. firstSpanAfterLoadMs is the first generate after that load. laterDecodeMs are the remaining spans of the first condition, model already loaded.',
+  note: hallucination
+    ? 'Each window is 5 seconds of a clip with nobody speaking. A window counts as a hallucination when Tagalog Whisper returns a word. Punctuation alone does not count. loadMs is pipeline().'
+    : 'Spans are the human label times, not the live VAD cuts. loadMs is pipeline() including the weight download when the cache was empty. firstSpanAfterLoadMs is the first generate after that load. laterDecodeMs are the remaining spans of the first condition, model already loaded.',
+  hallucination: hallucination
+    ? {
+        windowSec: 5,
+        windows: decoded.tl.spans.length,
+        withWords: decoded.tl.spans.filter((row) => normalizeText(row.text).length > 0).length,
+        rate: decoded.tl.spans.filter((row) => normalizeText(row.text).length > 0).length / decoded.tl.spans.length,
+      }
+    : null,
   decoded,
   scores,
 };

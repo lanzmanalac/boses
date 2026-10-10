@@ -16,7 +16,7 @@ const MIN_NEW_TOKENS = 24;
 /**
  * @typedef {
  *   | { type: 'load', model?: 'tiny' | 'base' | null }
- *   | { type: 'decode', id: string, pcm: Float32Array, prompt: string | null }
+ *   | { type: 'decode', id: string, pcm: Float32Array, prompt: string | null, language?: 'en' | 'tl' }
  * } ToWorker
  */
 
@@ -59,11 +59,20 @@ function progress01(info) {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {'en' | 'tl'}
+ */
+function languageId(value) {
+  return value === 'en' ? 'en' : 'tl';
+}
+
+/**
  * @param {unknown} tokenizer
  * @param {string} prompt
+ * @param {'en' | 'tl'} language
  * @returns {number[]}
  */
-function decoderInputIds(tokenizer, prompt) {
+function decoderInputIds(tokenizer, prompt, language) {
   const encode = (s) => {
     const ids = tokenizer.encode(s, { add_special_tokens: false });
     return Array.from(ids);
@@ -74,7 +83,7 @@ function decoderInputIds(tokenizer, prompt) {
   return prefix.concat(
     body,
     encode('<|startoftranscript|>'),
-    encode('<|tl|>'),
+    encode(`<|${language}|>`),
     encode('<|transcribe|>'),
   );
 }
@@ -118,8 +127,9 @@ async function loadPipeline(preference = null) {
  * @param {string} id
  * @param {Float32Array} pcm
  * @param {string | null} prompt
+ * @param {'en' | 'tl'} language
  */
-async function decode(id, pcm, prompt) {
+async function decode(id, pcm, prompt, language) {
   if (!asr) {
     self.postMessage(/** @type {FromWorker} */ ({ type: 'decode_failed', id }));
     return;
@@ -128,11 +138,11 @@ async function decode(id, pcm, prompt) {
     const gen = {
       return_timestamps: 'word',
       chunk_length_s: 30,
-      language: 'tl',
+      language,
       task: 'transcribe',
       max_new_tokens: Math.max(MIN_NEW_TOKENS, Math.ceil((pcm.length / 16000) * TOKENS_PER_SEC)),
     };
-    if (prompt) gen.decoder_input_ids = decoderInputIds(asr.tokenizer, prompt);
+    if (prompt) gen.decoder_input_ids = decoderInputIds(asr.tokenizer, prompt, language);
     const out = await asr(pcm, gen);
     const text = typeof out?.text === 'string' ? out.text : '';
     const chunks = Array.isArray(out?.chunks) ? out.chunks : [];
@@ -151,7 +161,7 @@ self.onmessage = async (ev) => {
       return;
     }
     if (msg.type === 'decode') {
-      await decode(msg.id, msg.pcm, msg.prompt ?? null);
+      await decode(msg.id, msg.pcm, msg.prompt ?? null, languageId(msg.language));
     }
   } catch (err) {
     if (msg && msg.type === 'load') {
