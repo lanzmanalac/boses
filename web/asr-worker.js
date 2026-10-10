@@ -1,13 +1,21 @@
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1';
 
-const MODEL_ID = 'Xenova/whisper-tiny';
+// Model per device. Measured on the team's clean lesson (browser output, loop
+// lines excluded): base + hotwords 50% WER vs tiny + hotwords 65%. Base costs
+// ~3 s per line and ~290 MB on WebGPU, so phones and WASM keep tiny (~41 MB q8).
+// Override for testing with ?model=tiny or ?model=base on the page URL.
+const MODELS = { base: 'Xenova/whisper-base', tiny: 'Xenova/whisper-tiny' };
 const PROMPT_TOKEN_CAP = 223;
+// Whisper keeps generating until 448 tokens when it loops; a measured loop line
+// took 16 s. Normal Taglish speech stays well under ~12 tokens/s.
+const TOKENS_PER_SEC = 12;
+const MIN_NEW_TOKENS = 24;
 
 /** @typedef {{ text: string, timestamp: [number, number | null] }} PipelineChunk */
 
 /**
  * @typedef {
- *   | { type: 'load' }
+ *   | { type: 'load', model?: 'tiny' | 'base' | null }
  *   | { type: 'decode', id: string, pcm: Float32Array, prompt: string | null }
  * } ToWorker
  */
@@ -15,7 +23,7 @@ const PROMPT_TOKEN_CAP = 223;
 /**
  * @typedef {
  *   | { type: 'progress', p: number }
- *   | { type: 'loaded', device: 'webgpu' | 'wasm' }
+ *   | { type: 'loaded', device: 'webgpu' | 'wasm', model: string }
  *   | { type: 'load_failed', message: string }
  *   | { type: 'decoded', id: string, text: string, chunks: PipelineChunk[] }
  *   | { type: 'decode_failed', id: string }
@@ -24,6 +32,17 @@ const PROMPT_TOKEN_CAP = 223;
 
 let asr = null;
 let device = /** @type {'webgpu' | 'wasm'} */ ('wasm');
+let modelId = MODELS.tiny;
+
+/** @param {string | null | undefined} preference 'tiny' | 'base' | null (auto) */
+function pickModels(preference) {
+  if (preference === 'tiny' || preference === 'base') {
+    return { webgpu: MODELS[preference], wasm: MODELS[preference] };
+  }
+  const ua = String(globalThis.navigator?.userAgent ?? '');
+  const phone = /Android|iPhone|iPad|Mobi/i.test(ua);
+  return { webgpu: phone ? MODELS.tiny : MODELS.base, wasm: MODELS.tiny };
+}
 
 /**
  * @param {unknown} info
@@ -60,30 +79,39 @@ function decoderInputIds(tokenizer, prompt) {
   );
 }
 
-async function loadPipeline() {
+/** @param {string | null} [preference] */
+async function loadPipeline(preference = null) {
   if (asr) {
-    self.postMessage(/** @type {FromWorker} */ ({ type: 'loaded', device }));
+    self.postMessage(/** @type {FromWorker} */ ({ type: 'loaded', device, model: modelId }));
     return;
   }
+  const choice = pickModels(preference);
+  // WebGPU tries fp16 first: half the download of fp32 (base: 146 MB vs 291 MB)
+  // and Hugging Face served the fp16 files ~100x faster than fp32 when tested.
+  // Devices without shader-f16 fall through to fp32, then to WASM.
+  const attempts = [
+    { device: 'webgpu', model: choice.webgpu, dtype: 'fp16' },
+    { device: 'webgpu', model: choice.webgpu, dtype: 'fp32' },
+    { device: 'wasm', model: choice.wasm, dtype: 'q8' },
+  ];
   const opts = {
     progress_callback: (info) => {
       self.postMessage(/** @type {FromWorker} */ ({ type: 'progress', p: progress01(info) }));
     },
   };
-  try {
-    asr = await pipeline('automatic-speech-recognition', MODEL_ID, {
-      ...opts,
-      device: 'webgpu',
-    });
-    device = 'webgpu';
-  } catch {
-    asr = await pipeline('automatic-speech-recognition', MODEL_ID, {
-      ...opts,
-      device: 'wasm',
-    });
-    device = 'wasm';
+  let lastError = null;
+  for (const a of attempts) {
+    try {
+      asr = await pipeline('automatic-speech-recognition', a.model, { ...opts, device: a.device, dtype: a.dtype });
+      device = a.device;
+      modelId = `${a.model} (${a.dtype})`;
+      break;
+    } catch (err) {
+      lastError = err;
+    }
   }
-  self.postMessage(/** @type {FromWorker} */ ({ type: 'loaded', device }));
+  if (!asr) throw lastError ?? new Error('no model loaded');
+  self.postMessage(/** @type {FromWorker} */ ({ type: 'loaded', device, model: modelId }));
 }
 
 /**
@@ -102,6 +130,7 @@ async function decode(id, pcm, prompt) {
       chunk_length_s: 30,
       language: 'tl',
       task: 'transcribe',
+      max_new_tokens: Math.max(MIN_NEW_TOKENS, Math.ceil((pcm.length / 16000) * TOKENS_PER_SEC)),
     };
     if (prompt) gen.decoder_input_ids = decoderInputIds(asr.tokenizer, prompt);
     const out = await asr(pcm, gen);
@@ -118,7 +147,7 @@ self.onmessage = async (ev) => {
   const msg = ev.data;
   try {
     if (msg.type === 'load') {
-      await loadPipeline();
+      await loadPipeline(msg.model ?? null);
       return;
     }
     if (msg.type === 'decode') {

@@ -19,7 +19,7 @@ const MAX_CRASHES = 1;
  *   | { kind: 'unusable', gap: Gap }
  * } PlaceResult
  * @typedef {
- *   | { kind: 'decoded', text: string, chunks: readonly PipelineChunk[] }
+ *   | { kind: 'decoded', text: string, chunks: readonly PipelineChunk[], loopFromRel?: number | null }
  *   | { kind: 'timeout' }
  *   | { kind: 'failed' }
  *   | { kind: 'too_short' }
@@ -161,7 +161,9 @@ export class WhisperEngine {
       this._loadOk = resolve;
       this._loadErr = reject;
     });
-    worker.postMessage({ type: 'load' });
+    // ?model=tiny|base overrides the per-device default in asr-worker.js.
+    const pref = new URLSearchParams(globalThis.location?.search ?? '').get('model');
+    worker.postMessage({ type: 'load', model: pref === 'tiny' || pref === 'base' ? pref : null });
     await loaded;
     this._ready = true;
     this._pump();
@@ -179,6 +181,8 @@ export class WhisperEngine {
     if (type === 'loaded') {
       const device = /** @type {{ device?: string }} */ (msg).device;
       this.id = device === 'webgpu' ? 'whisper-webgpu' : 'whisper-wasm';
+      /** Exact model that loaded, for the HUD and DISCLOSURES.md. */
+      this.modelId = String(/** @type {{ model?: string }} */ (msg).model ?? '');
       this._loadOk?.();
       this._loadOk = null;
       this._loadErr = null;
@@ -364,10 +368,48 @@ function budgetMs(audioSec) {
 function decodeFromWorker(text, chunks, prompt) {
   const trimmed = String(text ?? '').trim();
   if (!trimmed) return { kind: 'failed' };
-  if (isPromptEcho(trimmed, prompt) || isRepetitionLoop(trimmed, chunks)) {
-    return { kind: 'repetition' };
+  if (isPromptEcho(trimmed, prompt)) return { kind: 'repetition' };
+  if (isRepetitionLoop(trimmed, chunks)) {
+    // Keep the real words before a looping tail; only the loop becomes a gap.
+    const cut = trimLoopTail(chunks);
+    if (!cut) return { kind: 'repetition' };
+    return { kind: 'decoded', text: cut.text, chunks: cut.chunks, loopFromRel: cut.loopFromRel };
   }
   return { kind: 'decoded', text: trimmed, chunks };
+}
+
+const MIN_WORDS_BEFORE_LOOP = 2;
+
+/**
+ * Split word chunks at the start of a trailing repetition loop (same 1–4 word
+ * unit repeated 3+ times). Returns the chunks before it and where the loop
+ * starts (clip-relative seconds, or null if unknown), or null when fewer than
+ * MIN_WORDS_BEFORE_LOOP real words come before the loop.
+ * @param {readonly PipelineChunk[]} chunks
+ */
+export function trimLoopTail(chunks) {
+  const items = (chunks ?? [])
+    .map((c) => ({ c, tok: String(c?.text ?? '').trim().toLowerCase() }))
+    .filter((x) => x.tok);
+  let cutAt = -1;
+  for (let n = 1; n <= 4; n++) {
+    if (items.length < n * 3) continue;
+    const unit = items.slice(items.length - n).map((x) => x.tok).join(' ');
+    let i = items.length;
+    let repeats = 0;
+    while (i >= n && items.slice(i - n, i).map((x) => x.tok).join(' ') === unit) { repeats++; i -= n; }
+    if (repeats >= 3 && (cutAt === -1 || i < cutAt)) cutAt = i;
+  }
+  if (cutAt === -1) return null;
+  const kept = items.slice(0, cutAt).map((x) => x.c);
+  const realWords = kept.filter((c) => /[\p{L}\p{N}]/u.test(String(c?.text ?? ''))).length;
+  if (realWords < MIN_WORDS_BEFORE_LOOP) return null;
+  const t0 = items[cutAt]?.c?.timestamp?.[0];
+  return {
+    chunks: kept,
+    text: kept.map((c) => String(c.text ?? '')).join('').trim(),
+    loopFromRel: Number.isFinite(t0) ? t0 : null,
+  };
 }
 
 /**
@@ -460,6 +502,12 @@ function toSegment(e, outcome, engine, latencyMs) {
       gaps = placed.gaps;
     } else {
       gaps = [placed.gap];
+    }
+    if ('loopFromRel' in outcome) {
+      // The trimmed loop is shown honestly as a gap, after the kept words.
+      const lastEnd = Math.max(start, ...words.map((w) => w.end), ...gaps.map((g) => g.end));
+      const from = outcome.loopFromRel == null ? lastEnd : Math.max(lastEnd, start + outcome.loopFromRel);
+      if (end > from) gaps.push({ start: from, end, reason: { kind: 'repetition_suppressed' } });
     }
   } else if (outcome.kind === 'too_short') {
     gaps = [{ start, end, reason: { kind: 'too_short' } }];
