@@ -57,6 +57,7 @@ For an offline check, first load the deployed app and all needed model/fixture
 assets online on the **same device and origin**, then disconnect networking
 and reload. Service-worker scope and model caching depend on the chosen host;
 do not claim offline operation until it is tested there on the same device.
+Setup for another machine, and the Vercel steps, are in [docs/SETUP.md](docs/SETUP.md).
 
 ## Data flow and module owners
 

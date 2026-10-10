@@ -1,6 +1,6 @@
 # Boses — System Architecture
 
-Companion to `Boses.md` (product spec) and `Boses-Parallel-Build-Plan.md` (coordination).
+Companion to `Boses.md` (product spec) and `docs/coordination.md` (coordination).
 Read this before T+0:30, because **one decision here unblocks the whole team's build.**
 
 ---
@@ -521,7 +521,7 @@ sequenceDiagram
 
 ## 10. Wires into the build plan
 
-This document does not replace `Boses-Parallel-Build-Plan.md`; it supplies its contracts.
+This document does not replace `docs/coordination.md`; it supplies its contracts.
 
 | Build-plan lane | Architectural source |
 | --- | --- |

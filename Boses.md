@@ -416,7 +416,7 @@ Briefing starts **2:30 PM Oct 9**; code freezes **10:00 AM Oct 10**. That is **1
 
 *The airplane-mode demo path is a fifth thing you cannot cut, though it is a property of the build rather than a feature.*
 
-**Parallelize from hour 1** — see `Boses-Parallel-Build-Plan.md` for the full ownership map, interface contracts, and checkpoint schedule. One person owns audio recording, transcription, and the noise layer; the others build against fixtures. Audio collection is the long pole.
+**Parallelize from hour 1** — see `docs/coordination.md` for the full ownership map, interface contracts, and checkpoint schedule. One person owns audio recording, transcription, and the noise layer; the others build against fixtures. Audio collection is the long pole.
 
 **Demo Day hardware plan.** WebGPU may be unavailable on the venue machine. Verify the WASM fallback **before** Demo Day, run the device matrix (**one phone, one laptop**), pre-warm the browser cache **on the device you will actually present from**, disable sleep, bring your own charger and cable, and **carry a backup demo video recorded entirely in airplane mode.** Never depend on Cyberzone's Wi-Fi for the one thing your entire pitch is about.
 
@@ -550,7 +550,7 @@ boses/
 
 ## 19. Team roles (3–4 people)
 
-These map one-to-one onto the **P1–P4** lanes in `Boses-Parallel-Build-Plan.md`. For a team of three, merge P1 into P4; for two, merge P3 into P4 and keep P2 separate — audio is the long pole and should never be a shared task.
+These map one-to-one onto the **P1–P4** lanes in `docs/coordination.md`. For a team of three, merge P1 into P4; for two, merge P3 into P4 and keep P2 separate — audio is the long pole and should never be a shared task.
 
 - **P1 — Local ASR / models:** browser Whisper, WebGPU + WASM paths, hotword biasing, latency, calibration
 - **P2 — Audio, capture, and noise:** recording, hand transcription, `capture.js`, `noise.js` (SNR gate, min-duration, loop suppression, noise-floor calibration)
